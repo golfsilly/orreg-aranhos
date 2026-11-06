@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SURGIS ARANHOS
 
-## Getting Started
+โครงเริ่มต้นระบบทะเบียนผ่าตัด พัฒนาด้วย Next.js 16, TypeScript, Tailwind CSS 4, shadcn/ui และ Base UI, Prisma 7, MySQL และ Better Auth ใช้ pnpm เป็น package manager
 
-First, run the development server:
+**สถานะ: อยู่ระหว่างพัฒนา ยังไม่พร้อมใช้กับข้อมูลผู้ป่วยจริง** มีหน้าเข้าสู่ระบบ จัดการบัญชี ค้นหาและซิงก์ HOSxP ออกเลขทะเบียน ดู Operation และทีมผ่าตัด บันทึกเวลาและข้อมูลเพิ่มเติม รวมถึง dashboard และรายงานสรุป มีการทดสอบด้วยข้อมูลจำลอง แต่ยังไม่ได้ทดสอบกับ HOSxP ของโรงพยาบาล
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## เริ่มต้นพัฒนา
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. ใช้ Node.js รุ่นที่ Next.js 16 และ Prisma 7 รองรับ และ pnpm รุ่นที่ระบุใน `package.json` แล้วติดตั้ง dependency ด้วย `pnpm install --frozen-lockfile` (ขั้นตอนนี้สร้าง Prisma Client ด้วย)
+2. คัดลอก `.env.example` เป็น `.env` และตั้งค่า `DATABASE_URL`, `BETTER_AUTH_SECRET` และ `BETTER_AUTH_URL` สำหรับเครื่องพัฒนา โดย secret ต้องสุ่มและเก็บเป็นความลับ
+3. สร้างฐานข้อมูล MySQL **แยกสำหรับแอป** แล้วรัน `pnpm exec prisma migrate deploy` เพื่อสร้างตารางในแอป
+4. รัน `pnpm dev` และเปิด `http://localhost:50004` (ใช้พอร์ตเดียวกันสำหรับ `pnpm start`)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+สร้าง superadmin คนแรกหลังจาก migration โดยตั้งค่า `BOOTSTRAP_EMAIL`, `BOOTSTRAP_NAME`, `BOOTSTRAP_PASSWORD` ใน environment แล้วรัน `pnpm bootstrap:superadmin` สคริปต์ทำงานได้เมื่อยังไม่มีบัญชีเท่านั้น รหัสผ่านต้องยาว 12–128 ตัวอักษร เก็บค่า environment เป็นความลับและลบออกเมื่อดำเนินการเสร็จ สคริปต์ใช้ Node.js ที่รองรับการรัน TypeScript โดยตรง (ทดสอบด้วย Node.js 24)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+การสมัครบัญชีสาธารณะถูกปิดไว้ บัญชีใหม่มีบทบาทเริ่มต้นเป็น `USER`; `SUPERADMIN` เข้าถึงทุกส่วน, `ADMIN` จัดการบัญชี, `NURSE` อ่านและแก้ไขทะเบียน, และ `USER` ดู dashboard เท่านั้น ทุกบทบาทดู dashboard ได้ เฉพาะ superadmin จัดการบัญชี superadmin ได้ ระบบป้องกันการระงับหรือลดสิทธิ์ superadmin ที่ใช้งานอยู่คนสุดท้าย และเก็บประวัติการจัดการบัญชีโดยไม่เก็บรหัสผ่าน
 
-## Learn More
+Prisma adapter ในโครงเริ่มต้นนี้อ่าน host, port, username, password และชื่อฐานข้อมูลจาก `DATABASE_URL` เท่านั้น ยังไม่ได้ตั้งค่า TLS หรือ connection options จาก URL จึงต้องเพิ่มและทดสอบการเชื่อมต่อที่เหมาะสมกับสภาพแวดล้อมก่อนใช้งานจริง
 
-To learn more about Next.js, take a look at the following resources:
+## HOSxP
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`lib/hosxp/operations.ts` เตรียมคำสั่งอ่านรายการตามวันที่และทีมผ่าตัดจาก SQL ที่โรงพยาบาลให้มา โดยใช้ parameter และ transaction แบบ read-only ข้อมูลรวมถึงข้อมูลระบุตัวผู้ป่วยและข้อมูลทางการเงิน API `/api/hosxp/operations?date=YYYY-MM-DD` และ `/api/hosxp/operations/{operationId}/team` ตรวจสิทธิ์ `register:read` ฝั่งเซิร์ฟเวอร์และไม่ cache ผลลัพธ์ ต้องทดสอบกับบัญชีและฐานข้อมูลจริงก่อนนำไปใช้งาน
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+โค้ดเดียวกันอ่าน `operation_position` และจับคู่ `position_id` กับกลุ่มบุคลากรตามที่แจ้ง: กลุ่ม 1 = 1, กลุ่ม 2 = 5, กลุ่ม 3 = 2, กลุ่ม 4 = 3 และกลุ่ม 5 = 4, 6, 7, 8 โดยชื่อแสดงจาก HOSxP ตำแหน่งที่ไม่อยู่ในชุดนี้จะถูกส่งกลับโดยไม่กำหนดกลุ่มเพื่อให้ตรวจสอบเพิ่มเติม
 
-## Deploy on Vercel
+เมื่อผู้มีสิทธิ์ซิงก์ ระบบดึงรายการจาก HOSxP ตาม `request_operation_date` แล้วจัดเลขให้รายการใหม่ใน transaction เดียว โดยบังคับไม่ให้เลขลำดับซ้ำภายในปีงบประมาณและเดือนเดียวกัน และไม่ให้ HOSxP operation เดียวกันมีทะเบียนซ้ำ เลขแสดงเป็น `ลำดับ/เดือน` ปีงบประมาณเริ่ม 1 ตุลาคม และลำดับเริ่มใหม่ทุกเดือน หาก HOSxP เปลี่ยนวันผ่าตัด ต้องค้นหาและซิงก์วันที่ใหม่: เมื่อเปลี่ยนข้ามเดือนระบบออกเลขใหม่ตามเดือนใหม่ เมื่อเปลี่ยนภายในเดือนเดียวกันระบบคงเลขเดิม ระบบเก็บประวัติก่อน–หลังและไม่ใช้เลขเก่าซ้ำ ข้อมูลเพิ่มเติมและเวลาที่เคยบันทึกยังคงอยู่ เจ้าหน้าที่ควรตรวจสอบเวลาเดิมเมื่อวันผ่าตัดเปลี่ยน
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+เวลาในทะเบียนมีสี่จุด ได้แก่ เข้าห้องผ่าตัด เริ่มผ่าตัด สิ้นสุดผ่าตัด และออกจากห้องผ่าตัด หน้าจอใช้เวลาประเทศไทย รองรับการผ่าตัดข้ามวัน ตรวจลำดับเวลา และป้องกันการเขียนทับเมื่อมีผู้แก้ไขพร้อมกัน ประวัติก่อน–หลังบันทึกในฐานข้อมูลแอปเท่านั้น ไม่มีการบันทึกกลับ HOSxP
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Patho, Pre-op และ Post-op เป็น checkbox ชนิดการดมยาเลือกได้จาก LA, TIVA, SB, NB, LMA, GA และ GA_WITH_MASK ความเร่งด่วนเลือก ELECTIVE หรือ EMERGENCY โดยนำค่า `emergency_name` ที่ตรงกันจาก HOSxP มาเป็นค่าเริ่มต้นตอนซิงก์ ประเภทผ่าตัดเลือกผ่าตัดใหญ่หรือผ่าตัดเล็ก และกรณีผ่าตัดเล็กเลือกช่วงเวลาในหรือนอกเวลาราชการได้ ผู้ใช้เป็นผู้เลือกช่วงเวลาเอง ไม่ได้คำนวณอัตโนมัติจากเวลาผ่าตัด ข้อมูลเหล่านี้เว้นว่างได้และการแก้ไขถูกเก็บประวัติก่อน–หลัง Operation และบุคลากรดึงจาก HOSxP เพื่อแสดงอย่างเดียว รายงานสรุปแยกเดือน ประเภทผ่าตัด ช่วงเวลาผ่าตัดเล็ก ความเร่งด่วน ชนิดการดมยา และจำนวน checkbox พร้อมดาวน์โหลด CSV
+
+ตั้งค่า `HOSXP_*` ตาม `.env.example` ด้วยบัญชีแยกที่ได้รับสิทธิ์ `SELECT` เฉพาะตารางที่ต้องอ่านเท่านั้น สิทธิ์ read-only ต้องบังคับที่ฐานข้อมูลด้วย ห้ามใช้บัญชีแอปหรือบัญชีที่เขียน HOSxP ได้ ระบุ `HOSXP_TLS_CA_PATH` เป็นไฟล์ CA ที่เชื่อถือได้สำหรับตรวจสอบ TLS ตัวเลือก `HOSXP_ALLOW_INSECURE=true` มีไว้สำหรับสภาพแวดล้อมพัฒนาที่ได้รับอนุญาตเท่านั้น ไม่มีค่าเชื่อมต่อจริงหรือการทดสอบกับ HOSxP ในโครงการนี้
+
+## ข้อมูลที่ต้องกำหนดก่อนพัฒนาต่อ
+
+- ตรวจสอบ SQL และโครงสร้าง HOSxP กับฐานข้อมูลจริง รวมถึงบัญชีฐานข้อมูลแยกที่มีสิทธิ์อ่านอย่างเดียว ห้ามนำ `DATABASE_URL` สำหรับ migration ไปชี้ที่ HOSxP
+- กติกาทะเบียนเมื่อรายการถูกยกเลิกใน HOSxP
+- รายงานเฉพาะเพิ่มเติมที่โรงพยาบาลต้องการ และการตรวจสอบข้อมูลกับ HOSxP จริง

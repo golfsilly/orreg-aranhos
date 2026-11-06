@@ -1,0 +1,211 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserRole {
+  SUPERADMIN
+  ADMIN
+  NURSE
+  USER
+}
+
+enum AnesthesiaType {
+  LA
+  TIVA
+  SB
+  NB
+  LMA
+  GA
+  GA_WITH_MASK
+}
+
+enum OperationUrgency {
+  ELECTIVE
+  EMERGENCY
+}
+
+enum SurgeryClass {
+  MAJOR
+  MINOR
+}
+
+enum MinorSurgeryPeriod {
+  OFFICIAL_HOURS
+  OUTSIDE_HOURS
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  role          UserRole  @default(USER)
+  isActive      Boolean   @default(true)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  surgeryRegisters SurgeryRegister[]
+  surgeryTimeChanges SurgeryRegisterTimeChange[]
+  surgeryDetailChanges SurgeryRegisterDetailChange[]
+  surgeryNumberChanges SurgeryRegisterNumberChange[]
+  userChangesMade UserManagementAudit[] @relation("UserChangesMade")
+  userChangesReceived UserManagementAudit[] @relation("UserChangesReceived")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?  @db.Text
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String   @db.Text
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@index([identifier])
+}
+
+// Allocation and register updates must share a transaction. A counter is
+// specific to one fiscal-year month and is never decremented.
+model SurgeryRegisterCounter {
+  fiscalYear    Int
+  calendarMonth Int
+  lastSequence  Int @default(0)
+
+  @@id([fiscalYear, calendarMonth])
+}
+
+model SurgeryRegister {
+  id               String   @id @default(cuid())
+  fiscalYear       Int
+  calendarMonth    Int
+  sequence         Int
+  operationDate    DateTime @db.Date
+  roomEnteredAt    DateTime?
+  operationStartedAt DateTime?
+  operationEndedAt DateTime?
+  roomExitedAt     DateTime?
+  revision         Int      @default(0)
+  patho            Boolean  @default(false)
+  preOp            Boolean  @default(false)
+  postOp           Boolean  @default(false)
+  anesthesia       AnesthesiaType?
+  urgency          OperationUrgency?
+  surgeryClass     SurgeryClass?
+  minorPeriod      MinorSurgeryPeriod?
+  hosxpOperationId String?  @unique
+  createdById      String
+  createdBy        User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  staff            SurgeryRegisterStaff[]
+  timeChanges      SurgeryRegisterTimeChange[]
+  detailChanges    SurgeryRegisterDetailChange[]
+  numberChanges    SurgeryRegisterNumberChange[]
+
+  @@unique([fiscalYear, calendarMonth, sequence])
+  @@index([createdById])
+}
+
+model SurgeryRegisterStaff {
+  id              String          @id @default(cuid())
+  registerId      String
+  register        SurgeryRegister @relation(fields: [registerId], references: [id], onDelete: Restrict)
+  positionId      Int
+  personnelGroup  Int
+  staffName       String
+  hosxpStaffCode  String?
+
+  @@index([registerId])
+}
+
+model SurgeryRegisterTimeChange {
+  id          String          @id @default(cuid())
+  registerId  String
+  register    SurgeryRegister @relation(fields: [registerId], references: [id], onDelete: Restrict)
+  changedById String
+  changedBy   User            @relation(fields: [changedById], references: [id], onDelete: Restrict)
+  changedAt   DateTime        @default(now())
+  before      Json
+  after       Json
+
+  @@index([registerId, changedAt])
+  @@index([changedById])
+}
+
+model SurgeryRegisterDetailChange {
+  id          String          @id @default(cuid())
+  registerId  String
+  register    SurgeryRegister @relation(fields: [registerId], references: [id], onDelete: Restrict)
+  changedById String
+  changedBy   User            @relation(fields: [changedById], references: [id], onDelete: Restrict)
+  changedAt   DateTime        @default(now())
+  before      Json
+  after       Json
+
+  @@index([registerId, changedAt])
+  @@index([changedById])
+}
+
+model SurgeryRegisterNumberChange {
+  id          String          @id @default(cuid())
+  registerId  String
+  register    SurgeryRegister @relation(fields: [registerId], references: [id], onDelete: Restrict)
+  changedById String
+  changedBy   User            @relation(fields: [changedById], references: [id], onDelete: Restrict)
+  changedAt   DateTime        @default(now())
+  before      Json
+  after       Json
+
+  @@index([registerId, changedAt])
+  @@index([changedById])
+}
+
+model UserManagementAudit {
+  id        String   @id @default(cuid())
+  actorId   String
+  actor     User     @relation("UserChangesMade", fields: [actorId], references: [id], onDelete: Restrict)
+  targetId  String
+  target    User     @relation("UserChangesReceived", fields: [targetId], references: [id], onDelete: Restrict)
+  action    String
+  details   Json
+  createdAt DateTime @default(now())
+
+  @@index([targetId, createdAt])
+  @@index([actorId])
+}
