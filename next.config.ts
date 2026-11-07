@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
     agentFeedback: true,
   },
   cacheComponents: true,
+  serverExternalPackages: ["pdfkit"],
+  outputFileTracingIncludes: {
+    "/api/reports/yearly/pdf": ["./assets/fonts/sarabun/*.ttf"],
+  },
   partialPrefetching: true,
   turbopack: {
     rules: {

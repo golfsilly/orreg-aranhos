@@ -1,9 +1,9 @@
 export const roles = ["SUPERADMIN", "ADMIN", "NURSE", "USER"] as const;
 export type UserRole = (typeof roles)[number];
-export type Permission = "dashboard:read" | "users:manage" | "register:read" | "register:write";
+export type Permission = "dashboard:read" | "users:manage" | "register:read" | "register:write" | "audit:read";
 
 const permissions: Record<UserRole, readonly Permission[]> = {
-  SUPERADMIN: ["dashboard:read", "users:manage", "register:read", "register:write"],
+  SUPERADMIN: ["dashboard:read", "users:manage", "register:read", "register:write", "audit:read"],
   ADMIN: ["dashboard:read", "users:manage"],
   NURSE: ["dashboard:read", "register:read", "register:write"],
   USER: ["dashboard:read"],

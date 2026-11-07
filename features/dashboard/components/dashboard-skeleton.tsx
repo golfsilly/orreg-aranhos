@@ -1,0 +1,10 @@
+import { LoadingRegion, Skeleton } from "@/components/ui/skeleton";
+
+export function DashboardSkeleton() {
+  return <LoadingRegion label="กำลังโหลดภาพรวมทะเบียนผ่าตัด" className="space-y-7">
+    <div className="flex flex-wrap items-end justify-between gap-5"><div className="space-y-3"><Skeleton className="h-3 w-36" /><Skeleton className="h-9 w-60" /><Skeleton className="h-4 w-80 max-w-full" /></div><div className="flex gap-2.5"><Skeleton className="h-10 w-36 rounded-xl" /><Skeleton className="h-10 w-36 rounded-xl" /></div></div>
+    <div className="grid gap-4 sm:grid-cols-3">{Array.from({ length: 3 }, (_, index) => <div key={index} className="rounded-[20px] border border-border bg-card p-5 sm:p-6"><div className="flex items-start justify-between"><Skeleton className="h-4 w-28" /><Skeleton className="size-10 rounded-xl" /></div><Skeleton className="mt-5 h-8 w-20" /><Skeleton className="mt-3 h-3 w-28" /></div>)}</div>
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]"><div className="min-w-0 rounded-[20px] border border-border bg-card p-5 sm:p-6"><div className="flex justify-between gap-3"><div className="space-y-3"><Skeleton className="h-9 w-56" /><Skeleton className="h-3 w-48" /></div><Skeleton className="h-9 w-32" /></div><div className="mt-6 flex h-[260px] items-end justify-around gap-3 overflow-hidden border-b border-border px-3 pb-4">{[36, 55, 43, 70, 52, 80, 60, 76, 47, 66, 56, 38].map((height, index) => <Skeleton key={index} className="w-full max-w-8 rounded-t-md" style={{ height: `${height}%` }} />)}</div></div><div className="rounded-[20px] border border-border bg-card p-5 sm:p-6"><Skeleton className="h-9 w-32" /><Skeleton className="mt-4 h-3 w-full" /><div className="mt-6 space-y-5 border-y border-border py-5">{Array.from({ length: 3 }, (_, i) => <div key={i} className="flex justify-between gap-3"><Skeleton className="h-3 w-28" /><Skeleton className="h-4 w-16" /></div>)}</div><Skeleton className="mt-5 h-4 w-32" /></div></div>
+    <Skeleton className="h-[58px] rounded-2xl" />
+  </LoadingRegion>;
+}

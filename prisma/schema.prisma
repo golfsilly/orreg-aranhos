@@ -39,13 +39,44 @@ enum MinorSurgeryPeriod {
   OUTSIDE_HOURS
 }
 
+enum AuditOutcome {
+  SUCCESS
+  FAILURE
+  DENIED
+}
+
+// Append-only through the application. Actor IDs remain available even if a
+// user is later removed; no credentials, tokens, CID, or patient names belong here.
+model AuditLog {
+  id          String       @id @default(cuid())
+  occurredAt  DateTime     @default(now())
+  actorId     String?
+  event       String       @db.VarChar(64)
+  outcome     AuditOutcome
+  targetType  String?      @db.VarChar(32)
+  targetId    String?      @db.VarChar(191)
+  metadata    Json?
+
+  @@index([occurredAt, id])
+  @@index([actorId, occurredAt])
+  @@index([targetType, targetId, occurredAt])
+}
+
 model User {
   id            String    @id
   name          String
   email         String    @unique
+  username      String?   @unique
+  cidSha256     String?   @unique @db.Char(64)
   emailVerified Boolean   @default(false)
   role          UserRole  @default(USER)
   isActive      Boolean   @default(true)
+  deletedAt     DateTime?
+  organization  String?   @db.VarChar(191)
+  mission       String?   @db.VarChar(191)
+  workGroup     String?   @db.VarChar(191)
+  jobTitle      String?   @db.VarChar(191)
+  jobLevel      String?   @db.VarChar(191)
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -57,6 +88,19 @@ model User {
   surgeryNumberChanges SurgeryRegisterNumberChange[]
   userChangesMade UserManagementAudit[] @relation("UserChangesMade")
   userChangesReceived UserManagementAudit[] @relation("UserChangesReceived")
+  profileAssets UserProfileAssets?
+
+  @@index([deletedAt, name, id])
+}
+
+// One private avatar and one current signature per user; replacements update
+// the same row rather than creating additional signatures.
+model UserProfileAssets {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatar    Bytes?   @db.MediumBlob
+  signature Bytes?   @db.MediumBlob
+  updatedAt DateTime @updatedAt
 }
 
 model Session {
@@ -88,6 +132,7 @@ model Account {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   @@index([userId])
+  @@unique([providerId, accountId])
 }
 
 model Verification {

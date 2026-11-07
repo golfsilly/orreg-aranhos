@@ -6,6 +6,7 @@ import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { fiscalPeriod } from "./fiscal-period";
 import { urgencyFromHosxp, type Urgency } from "./details";
+import { writeAudit } from "@/lib/audit/write";
 
 class SyncConflict extends Error {}
 
@@ -23,7 +24,16 @@ export async function syncHosxpDay(day: string, userId: string) {
       const id = normalizeOperationId(row.operation_id);
       if (!sourceUrgency.has(id)) sourceUrgency.set(id, urgencyFromHosxp(row.emergency_name));
     }
-    if (!ids.length) return { total: 0, created: 0, renumbered: 0, dateUpdated: 0, existing: 0 };
+    if (!ids.length) {
+      return prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM User WHERE id = ${userId} FOR UPDATE`;
+        const actor = await tx.user.findUnique({ where: { id: userId }, select: { role: true, isActive: true } });
+        if (!actor?.isActive || !hasPermission(actor.role, "register:write")) throw new Error("Forbidden");
+        const result = { total: 0, created: 0, renumbered: 0, dateUpdated: 0, existing: 0 };
+        await writeAudit(tx, { actorId: userId, event: "HOSXP_SYNC", outcome: "SUCCESS", targetType: "HOSXP_DAY", targetId: day, metadata: { date: day, ...result } });
+        return result;
+      });
+    }
 
     return prisma.$transaction(async (tx) => {
       // Recheck the actor under a lock so concurrent account changes cannot
@@ -51,10 +61,12 @@ export async function syncHosxpDay(day: string, userId: string) {
       for (const id of ids) {
         const previous = byId.get(id);
         if (!previous) {
+          const registerId = randomUUID();
           await tx.surgeryRegister.create({ data: {
-            id: randomUUID(), ...period, sequence: ++next, operationDate,
+            id: registerId, ...period, sequence: ++next, operationDate,
             hosxpOperationId: id, createdById: userId, urgency: sourceUrgency.get(id) ?? null,
           } });
+          await writeAudit(tx, { actorId: userId, event: "REGISTER_CREATED", outcome: "SUCCESS", targetType: "REGISTER", targetId: registerId, metadata: { date: day } });
           created += 1;
           continue;
         }
@@ -75,13 +87,16 @@ export async function syncHosxpDay(day: string, userId: string) {
           before: { fiscalYear: previous.fiscalYear, calendarMonth: previous.calendarMonth, sequence: previous.sequence, operationDate: previousDay, revision: previous.revision },
           after: { ...period, sequence, operationDate: day, revision: previous.revision + 1 },
         } });
+        await writeAudit(tx, { actorId: userId, event: "REGISTER_DATE_CHANGED", outcome: "SUCCESS", targetType: "REGISTER", targetId: previous.id, metadata: { date: day, revision: previous.revision + 1 } });
         if (movesMonth) renumbered += 1;
         else dateUpdated += 1;
       }
       if (next !== counter.lastSequence) {
         await tx.surgeryRegisterCounter.update({ where: { fiscalYear_calendarMonth: period }, data: { lastSequence: next } });
       }
-      return { total: ids.length, created, renumbered, dateUpdated, existing: unchanged };
+      const result = { total: ids.length, created, renumbered, dateUpdated, existing: unchanged };
+      await writeAudit(tx, { actorId: userId, event: "HOSXP_SYNC", outcome: "SUCCESS", targetType: "HOSXP_DAY", targetId: day, metadata: { date: day, ...result } });
+      return result;
     }, { maxWait: 10000, timeout: 30000 });
   }
 

@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "@fontsource/sarabun/400.css";
+@import "@fontsource/sarabun/500.css";
+@import "@fontsource/sarabun/600.css";
+@import "@fontsource/sarabun/700.css";
+@import "@fontsource/sarabun/800.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -31,29 +36,54 @@
 
 :root {
   color-scheme: light;
-  --radius: 0.625rem;
-  --background: #eff6f3;
-  --foreground: #173b3c;
+  --radius: 0.75rem;
+  --background: #f5f7f5;
+  --foreground: #182b23;
   --card: #ffffff;
-  --card-foreground: #173b3c;
+  --card-foreground: #182b23;
   --popover: #ffffff;
-  --popover-foreground: #173b3c;
-  --primary: #166c5e;
+  --popover-foreground: #182b23;
+  --primary: #176c50;
   --primary-foreground: #ffffff;
-  --secondary: #e6f1eb;
-  --secondary-foreground: #173b3c;
-  --muted: #f4f8f5;
-  --muted-foreground: #65817c;
-  --accent: #e6f1eb;
-  --accent-foreground: #173b3c;
-  --destructive: #a33a36;
-  --border: #dcebe3;
-  --input: #cbded4;
-  --ring: #7dc8b3;
+  --secondary: #eaf3ed;
+  --secondary-foreground: #234a38;
+  --muted: #eef3ef;
+  --muted-foreground: #64786d;
+  --accent: #e5f2e9;
+  --accent-foreground: #14563d;
+  --destructive: #a33335;
+  --border: #e0e9e2;
+  --input: #cad9ce;
+  --ring: #36a875;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #0a100d;
+  --foreground: #eaf2ed;
+  --card: #111b15;
+  --card-foreground: #eaf2ed;
+  --popover: #17231c;
+  --popover-foreground: #eaf2ed;
+  --primary: #74d5a5;
+  --primary-foreground: #092417;
+  --secondary: #1a3022;
+  --secondary-foreground: #c6ebd4;
+  --muted: #18231c;
+  --muted-foreground: #a0b5a7;
+  --accent: #213b2a;
+  --accent-foreground: #d4f2df;
+  --destructive: #ff9b95;
+  --border: #293c30;
+  --input: #3b5041;
+  --ring: #74d5a5;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, "Noto Sans Thai", sans-serif;
+  font-family: "Sarabun", "Leelawadee UI", sans-serif;
 }
+
+* { border-color: var(--border); }
+::selection { background: #7cd9a777; }

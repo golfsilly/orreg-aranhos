@@ -13,6 +13,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Use pnpm for dependency installation and project scripts; maintain `pnpm-lock.yaml` as the lockfile.
 - Use Tailwind CSS v4 utility classes directly in `className` for component styling, including long class lists when appropriate.
 - Prefer shadcn/ui components built on Base UI for interface controls and composition.
+- Validate environment variables with `@t3-oss/env-nextjs` and Zod through `lib/env.ts` or `lib/cli-env.ts`; do not read `process.env` directly elsewhere. The sole exception is Next.js's compile-time `NEXT_RUNTIME` guard in `instrumentation.ts`, which also validates that value with T3 Env and lets Next.js exclude Node-only code from its Edge bundle.
+- Use TanStack Query for client-side server state and mutations, TanStack Table for tables, and Recharts for charts. Keep sensitive query data transient and clear it on sign-out.
+- Use React Hook Form with `@hookform/resolvers` and Zod for forms, Zustand for shared client UI state, and Sonner for transient notifications. Preserve server-side authorization and validation.
+- Keep page route folders limited to `page.tsx` and a matching `loading.tsx`; put UI, state, and loading skeleton components under `features/`. Keep Next.js required files such as root/group layouts, root styles and metadata, and API `route.ts` in `app/`.
+- Every page must provide a `loading.tsx` with a skeleton that follows the real page layout and supports light/dark themes; provide matching skeletons for in-page data fetching as well.
+- Audit all authentication/security events, access to identifiable clinical data, account administration, and clinical mutations. Use `lib/audit/write.ts`, add event names to its allowlist, and write mutation events inside the same database transaction as the change. Record denied access without untrusted request content. Never include passwords, tokens, CID, patient names, HN, raw request/response bodies, or unredacted errors in the central audit log. Only superadmins may view audit logs.
 
 <!-- BEGIN:nextjs-agent-feedback -->
 

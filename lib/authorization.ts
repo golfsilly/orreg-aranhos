@@ -10,9 +10,9 @@ export async function getAuthorizedUser(permission: Permission) {
   if (!session) return null;
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, name: true, role: true, isActive: true },
+    select: { id: true, name: true, role: true, isActive: true, deletedAt: true },
   });
-  if (!user || !user.isActive || !hasPermission(user.role, permission))
+  if (!user || !user.isActive || user.deletedAt || !hasPermission(user.role, permission))
     return null;
   return user;
 }

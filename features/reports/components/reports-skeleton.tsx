@@ -1,0 +1,5 @@
+import { LoadingRegion, Skeleton } from "@/components/ui/skeleton";
+
+export function ReportsSkeleton() {
+  return <LoadingRegion label="กำลังโหลดรายงานสรุป"><div className="mb-7 space-y-3"><Skeleton className="h-3 w-36" /><Skeleton className="h-9 w-40" /><Skeleton className="h-4 w-80 max-w-full" /></div><div className="rounded-[20px] border border-border bg-card p-5 sm:p-7"><div className="flex flex-wrap items-end gap-3"><div><Skeleton className="h-4 w-24" /><Skeleton className="mt-2 h-[50px] w-[220px]" /></div><Skeleton className="h-[50px] w-28" /><Skeleton className="h-[50px] w-32" /><Skeleton className="h-[50px] w-32" /></div><Skeleton className="mt-5 h-4 w-96 max-w-full" /><div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-7 lg:grid-cols-2">{Array.from({ length: 6 }, (_, table) => <div key={table}><Skeleton className="h-5 w-36" /><div className="mt-3 space-y-0">{Array.from({ length: 4 }, (_, row) => <div key={row} className="flex justify-between border-b border-border px-2.5 py-3.5"><Skeleton className="h-4 w-28" /><Skeleton className="h-4 w-10" /></div>)}</div></div>)}</div></div></LoadingRegion>;
+}

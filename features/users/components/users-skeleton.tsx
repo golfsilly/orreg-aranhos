@@ -1,0 +1,4 @@
+import { LoadingRegion, Skeleton } from "@/components/ui/skeleton";
+export function UsersSkeleton() {
+  return <LoadingRegion label="กำลังโหลดบัญชีผู้ใช้"><div className="mb-7 space-y-3"><Skeleton className="h-3 w-32" /><Skeleton className="h-9 w-56" /><Skeleton className="h-4 w-80 max-w-full" /></div><div className="rounded-[20px] border border-border bg-card p-4 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-4"><div className="space-y-2"><Skeleton className="h-6 w-28" /><Skeleton className="h-4 w-56" /></div><Skeleton className="h-11 w-28 rounded-xl" /></div><div className="mt-6 flex flex-wrap gap-3"><Skeleton className="h-11 min-w-[180px] flex-1 rounded-xl" />{Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-11 w-28 rounded-xl" />)}</div><div className="mt-6 space-y-3">{Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}</div></div></LoadingRegion>;
+}

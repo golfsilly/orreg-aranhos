@@ -4,31 +4,30 @@ import "server-only";
 import { dayRange } from "./date-range";
 import { operationsForDaySql } from "./operation-query";
 import { personnelGroupForPosition } from "./positions";
+import { env } from "@/lib/env";
 
 type HosxpRow = Record<string, unknown>;
 const globalHosxp = globalThis as typeof globalThis & { hosxpPool?: Pool };
 
-function required(name: string): string {
-  const value = process.env[name];
+function required(name: "HOSXP_HOST" | "HOSXP_USER" | "HOSXP_PASSWORD" | "HOSXP_DATABASE"): string {
+  const value = env[name];
   if (!value) throw new Error(`${name} is required for HOSxP`);
   return value;
 }
 
 function pool(): Pool {
   if (globalHosxp.hosxpPool) return globalHosxp.hosxpPool;
-  const caPath = process.env.HOSXP_TLS_CA_PATH;
+  const caPath = env.HOSXP_TLS_CA_PATH;
   if (
     !caPath &&
-    (process.env.NODE_ENV === "production" ||
-      process.env.HOSXP_ALLOW_INSECURE !== "true")
+    (env.NODE_ENV === "production" ||
+      env.HOSXP_ALLOW_INSECURE !== "true")
   ) {
     throw new Error(
       "Configure HOSXP_TLS_CA_PATH; insecure connections are only permitted in development",
     );
   }
-  const port = Number(process.env.HOSXP_PORT || "3306");
-  if (!Number.isInteger(port) || port < 1 || port > 65535)
-    throw new Error("Invalid HOSXP_PORT");
+  const port = env.HOSXP_PORT;
   const result = createPool({
     host: required("HOSXP_HOST"),
     port,

@@ -4,11 +4,15 @@ import { getHosxpOperationsForDay } from "@/lib/hosxp/operations";
 import { normalizeOperationId } from "@/lib/hosxp/operation-id";
 import { prisma } from "@/lib/prisma";
 import { fiscalPeriod, formatRegisterNumber } from "@/lib/register/fiscal-period";
+import { writeAudit } from "@/lib/audit/write";
+import { recordDenied } from "@/lib/audit/denied";
 
 const headers = { "Cache-Control": "private, no-store" };
 
 export async function GET(request: Request) {
-  if (!await getAuthorizedUser("register:read")) {
+  const user = await getAuthorizedUser("register:read");
+  if (!user) {
+    await recordDenied("HOSXP_OPERATIONS_READ");
     return Response.json({ error: "Forbidden" }, { status: 403, headers });
   }
   const day = new URL(request.url).searchParams.get("date") ?? "";
@@ -25,10 +29,12 @@ export async function GET(request: Request) {
       const register = byId.get(normalizeOperationId(row.operation_id));
       return { ...row, registerNumber: register ? formatRegisterNumber(register.sequence, register.calendarMonth) : null, fiscalYear: register?.fiscalYear ?? null, registerUrgency: register?.urgency ?? null, surgeryClass: register?.surgeryClass ?? null, needsDateSync: Boolean(register && (register.operationDate.toISOString().slice(0, 10) !== day || register.fiscalYear !== period.fiscalYear || register.calendarMonth !== period.calendarMonth)) };
     });
+    await writeAudit(prisma, { actorId: user.id, event: "HOSXP_OPERATIONS_READ", outcome: "SUCCESS", targetType: "HOSXP_DAY", targetId: day, metadata: { date: day, total: operations.length } });
     return new Response(JSON.stringify({ operations }, (_, value) => typeof value === "bigint" ? value.toString() : value), {
       headers: { ...headers, "Content-Type": "application/json; charset=utf-8" },
     });
   } catch {
+    await writeAudit(prisma, { actorId: user.id, event: "HOSXP_OPERATIONS_READ", outcome: "FAILURE", targetType: "HOSXP_DAY", targetId: day, metadata: { date: day } });
     return Response.json({ error: "HOSxP is unavailable" }, { status: 503, headers });
   }
 }
