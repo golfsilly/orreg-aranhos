@@ -3,9 +3,9 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 
 // Opt in only against an isolated test server with an empty/test-only database.
-const base = process.env.SURGIS_TEST_URL;
-const email = process.env.SURGIS_TEST_ADMIN_EMAIL;
-const password = process.env.SURGIS_TEST_ADMIN_PASSWORD;
+const base = process.env.OR_REG_TEST_URL;
+const email = process.env.OR_REG_TEST_ADMIN_EMAIL;
+const password = process.env.OR_REG_TEST_ADMIN_PASSWORD;
 const enabled = base === "http://localhost:3105" && Boolean(email && password);
 
 test("isolated server: user and profile lifecycle", { skip: !enabled }, async () => {

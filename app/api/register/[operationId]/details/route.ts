@@ -5,10 +5,11 @@ import { parseRegisterDetails } from "@/lib/register/details";
 import { z } from "zod";
 import { writeAudit } from "@/lib/audit/write";
 import { recordDenied } from "@/lib/audit/denied";
+import { getHosxpOperationItems } from "@/lib/hosxp/operations";
 
 const headers = { "Cache-Control": "private, no-store" };
 type Context = { params: Promise<{ operationId: string }> };
-const select = { id: true, revision: true, patho: true, preOp: true, postOp: true, anesthesia: true, urgency: true, surgeryClass: true, minorPeriod: true } as const;
+const select = { id: true, revision: true, patho: true, preOp: true, postOp: true, anesthesia: true, urgency: true, surgeryClass: true, minorPeriod: true, diagnosis: true, remark: true } as const;
 
 function getId(value: string): string | null {
   try { return normalizeOperationId(value); } catch { return null; }
@@ -21,7 +22,9 @@ export async function GET(_request: Request, { params }: Context) {
   if (!id) return Response.json({ error: "Invalid operation ID" }, { status: 400, headers });
   const register = await prisma.surgeryRegister.findUnique({ where: { hosxpOperationId: id }, select });
   if (register) await writeAudit(prisma, { actorId: user.id, event: "REGISTER_DETAILS_READ", outcome: "SUCCESS", targetType: "REGISTER", targetId: register.id });
-  return register ? Response.json(register, { headers }) : Response.json({ error: "Not found" }, { status: 404, headers });
+  if (!register) return Response.json({ error: "Not found" }, { status: 404, headers });
+  const operations = await getHosxpOperationItems(Number(id));
+  return Response.json({ ...register, diagnosis: register.diagnosis ?? "", remark: register.remark ?? "", operations }, { headers });
 }
 
 export async function PATCH(request: Request, { params }: Context) {
@@ -40,10 +43,11 @@ export async function PATCH(request: Request, { params }: Context) {
   const result = await prisma.$transaction(async (tx) => {
     const current = await tx.surgeryRegister.findUnique({ where: { hosxpOperationId: id }, select });
     if (!current) return "missing" as const;
-    const updated = await tx.surgeryRegister.updateMany({ where: { id: current.id, revision }, data: { ...details, revision: { increment: 1 } } });
+    const savedDetails = { ...details, urgency: current.urgency };
+    const updated = await tx.surgeryRegister.updateMany({ where: { id: current.id, revision }, data: { ...savedDetails, revision: { increment: 1 } } });
     if (!updated.count) return "conflict" as const;
-    const before = { patho: current.patho, preOp: current.preOp, postOp: current.postOp, anesthesia: current.anesthesia, urgency: current.urgency, surgeryClass: current.surgeryClass, minorPeriod: current.minorPeriod };
-    await tx.surgeryRegisterDetailChange.create({ data: { registerId: current.id, changedById: user.id, before, after: details } });
+    const before = { patho: current.patho, preOp: current.preOp, postOp: current.postOp, anesthesia: current.anesthesia, urgency: current.urgency, surgeryClass: current.surgeryClass, minorPeriod: current.minorPeriod, diagnosis: current.diagnosis ?? "", remark: current.remark ?? "" };
+    await tx.surgeryRegisterDetailChange.create({ data: { registerId: current.id, changedById: user.id, before, after: savedDetails } });
     await writeAudit(tx, { actorId: user.id, event: "REGISTER_DETAILS_UPDATED", outcome: "SUCCESS", targetType: "REGISTER", targetId: current.id, metadata: { revision: revision + 1 } });
     return "ok" as const;
   });

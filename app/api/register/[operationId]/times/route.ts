@@ -33,7 +33,11 @@ export async function PATCH(request: Request, { params }: Context) {
   if (!id) { await failure("INVALID_INPUT"); return Response.json({ error: "Invalid operation ID" }, { status: 400, headers }); }
   let body: unknown;
   try { body = await request.json(); } catch { await failure("INVALID_INPUT"); return Response.json({ error: "Invalid request" }, { status: 400, headers }); }
-  const payload = z.object({ revision: z.number().int().nonnegative(), times: z.unknown() }).safeParse(body);
+  const payload = z.object({
+    revision: z.number().int().nonnegative(),
+    times: z.unknown(),
+    useHosxpTimes: z.object({ operationStartedAt: z.boolean().optional(), operationEndedAt: z.boolean().optional() }).optional(),
+  }).strict().safeParse(body);
   if (!payload.success) { await failure("INVALID_INPUT"); return Response.json({ error: "Invalid revision" }, { status: 400, headers }); }
   let times;
   try { times = parseRegisterTimes(payload.data.times); } catch { await failure("INVALID_INPUT"); return Response.json({ error: "Invalid or out-of-order times" }, { status: 400, headers }); }
@@ -41,10 +45,15 @@ export async function PATCH(request: Request, { params }: Context) {
   const result = await prisma.$transaction(async (tx) => {
     const current = await tx.surgeryRegister.findUnique({ where: { hosxpOperationId: id }, select: selection });
     if (!current) return "missing" as const;
-    const updated = await tx.surgeryRegister.updateMany({ where: { id: current.id, revision }, data: { ...times, revision: { increment: 1 } } });
+    const nextTimes = {
+      ...times,
+      ...(payload.data.useHosxpTimes?.operationStartedAt ? { operationStartedAt: null } : {}),
+      ...(payload.data.useHosxpTimes?.operationEndedAt ? { operationEndedAt: null } : {}),
+    };
+    const updated = await tx.surgeryRegister.updateMany({ where: { id: current.id, revision }, data: { ...nextTimes, revision: { increment: 1 } } });
     if (!updated.count) return "conflict" as const;
     const snapshot = (source: RegisterTimes) => Object.fromEntries(timeFields.map((field) => [field, source[field]?.toISOString() ?? null]));
-    await tx.surgeryRegisterTimeChange.create({ data: { registerId: current.id, changedById: user.id, before: snapshot(current), after: snapshot(times) } });
+    await tx.surgeryRegisterTimeChange.create({ data: { registerId: current.id, changedById: user.id, before: snapshot(current), after: snapshot(nextTimes) } });
     await writeAudit(tx, { actorId: user.id, event: "REGISTER_TIMES_UPDATED", outcome: "SUCCESS", targetType: "REGISTER", targetId: current.id, metadata: { revision: revision + 1 } });
     return "ok" as const;
   });

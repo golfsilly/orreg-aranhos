@@ -27,7 +27,7 @@ export async function createYearlyReportPdf(report: Report, generatedAt = new Da
   const format = (n: number) => n.toLocaleString("th-TH");
 
   doc.rect(0, 0, doc.page.width, 9).fill(green);
-  doc.fillColor(green).font("Sarabun-Bold").fontSize(10).text("SURGIS ARANHOS  /  รายงานสรุป", left, 34, { lineBreak: false });
+  doc.fillColor(green).font("Sarabun-Bold").fontSize(10).text("OR-Reg  /  รายงานสรุป", left, 34, { lineBreak: false });
   doc.fillColor(dark).fontSize(23).text("สถิติการผ่าตัด", left, 53, { lineBreak: false });
   doc.fillColor(muted).font("Sarabun").fontSize(11).text(`ปีงบประมาณ ${report.fiscalYear}  •  ตุลาคม – กันยายน`, left, 85, { lineBreak: false });
   const date = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }).format(generatedAt);
@@ -61,7 +61,7 @@ export async function createYearlyReportPdf(report: Report, generatedAt = new Da
   table(left, lowerY, "ชนิดการดมยา", report.anesthesia);
   table(right, lowerY, "รายการที่เลือก", report.flags);
   doc.moveTo(left, 774).lineTo(left + width, 774).strokeColor(border).stroke();
-  doc.fillColor(muted).font("Sarabun").fontSize(9).text("SURGIS ARANHOS  •  ข้อมูลสรุปจากทะเบียนผ่าตัด", left, 782, { lineBreak: false });
+  doc.fillColor(muted).font("Sarabun").fontSize(9).text("OR-Reg  •  ข้อมูลสรุปจากทะเบียนผ่าตัด", left, 782, { lineBreak: false });
   doc.text("1 / 1", left + width - 45, 782, { width: 45, align: "right", lineBreak: false });
   doc.end();
   return finished;

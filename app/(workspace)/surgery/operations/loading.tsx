@@ -1,4 +1,4 @@
-import { OperationsSkeleton } from "@/features/operations/components/operations-skeleton";
+import { OperationsSkeleton } from "@/features/operations/components/shared/operations-skeleton";
 
 export default function Loading() {
   return <OperationsSkeleton />;

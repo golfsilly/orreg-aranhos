@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/features/shared/components/providers";
+import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "SURGIS ARANHOS | ระบบทะเบียนผ่าตัด",
-  description: "ระบบทะเบียนผ่าตัดโรงพยาบาล",
+  title: `${BRAND.name} | ${BRAND.descriptor}`,
+  description: `${BRAND.name} ระบบทะเบียนและจัดการข้อมูลห้องผ่าตัด ${BRAND.hospitalName}`,
   icons: {
     icon: [
       { url: "/favicon/favicon.ico", type: "image/x-icon", sizes: "any" },

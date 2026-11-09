@@ -1,5 +1,5 @@
 {
-  "name": "surgis-aranhos",
+  "name": "or-reg",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@12.10.1",
@@ -10,7 +10,13 @@
     "setup:superadmin": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/setup-superadmin.ps1",
     "build": "next build",
     "start": "next start -p 50004",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:register": "node --test tests/register-columns.test.mjs tests/register-sync.test.mjs tests/hosxp-operation-query.test.mjs tests/operation-team.test.mjs tests/register-times.test.mjs tests/register-age-source.test.mjs",
+    "test:calendar": "node --test tests/calendar.test.mjs tests/hosxp-operation-query.test.mjs",
+    "test:register:browser": "node tests/operations-browser.mjs",
+    "test:calendar:browser": "node tests/operating-room-calendar-browser.mjs",
+    "test:register:editors": "node tests/operations-editors-browser.mjs",
+    "test:register:team": "node tests/operation-team-browser.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -27,8 +33,10 @@
     "clsx": "^2.1.1",
     "cn": "^0.5.2",
     "dotenv": "^18.0.9",
+    "gsap": "^3.15.1",
     "lucide-react": "^1.69.0",
     "mariadb": "^3.5.5",
+    "motion": "^14.10.1",
     "next": "16.4.5",
     "next-themes": "^0.4.6",
     "nodemailer": "^10.3.1",
@@ -42,17 +50,20 @@
     "sharp": "^0.35.5",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
+    "three": "^0.187.0",
     "tw-animate-css": "^1.4.0",
     "zod": "^4.6.7",
     "zustand": "^5.0.16"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.2",
     "@types/pdfkit": "^0.17.7",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.187.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.5",
     "prisma": "^7.10.1",

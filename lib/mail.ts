@@ -1,6 +1,7 @@
 import "server-only";
 import nodemailer from "nodemailer";
 import { env } from "@/lib/env";
+import { BRAND } from "@/lib/brand";
 
 export function isMailConfigured() {
   return Boolean(env.SMTP_HOST && env.SMTP_PORT && env.SMTP_FROM && env.SMTP_USER && env.SMTP_PASSWORD);
@@ -17,7 +18,7 @@ export async function sendPasswordReset(email: string, url: string) {
   });
   await transport.sendMail({
     from: env.SMTP_FROM, to: email,
-    subject: "ตั้งรหัสผ่านใหม่ | SURGIS ARANHOS",
-    text: `มีคำขอตั้งรหัสผ่านใหม่สำหรับบัญชี SURGIS ARANHOS\n\nเปิดลิงก์เพื่อตั้งรหัสผ่านใหม่: ${url}\n\nหากคุณไม่ได้ส่งคำขอนี้ สามารถละเลยอีเมลฉบับนี้ได้`,
+    subject: `ตั้งรหัสผ่านใหม่ | ${BRAND.name}`,
+    text: `มีคำขอตั้งรหัสผ่านใหม่สำหรับบัญชี ${BRAND.name}\n\nเปิดลิงก์เพื่อตั้งรหัสผ่านใหม่: ${url}\n\nหากคุณไม่ได้ส่งคำขอนี้ สามารถละเลยอีเมลฉบับนี้ได้`,
   });
 }

@@ -1,4 +1,5 @@
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BRAND } from "@/lib/brand";
 import { Activity, ArrowLeft, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -17,14 +18,14 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         />
         <Link href="/" className="relative flex w-fit items-center gap-3">
           <span className="flex size-11 items-center justify-center rounded-2xl bg-white p-1">
-            <Image src="/surgis-logo/logo.png" alt="" width={44} height={44} className="size-full object-contain" />
+            <Image src={BRAND.logoPath} alt="" width={44} height={44} className="size-full object-contain" />
           </span>
           <span>
             <span className="block text-sm font-bold tracking-[0.18em]">
-              SURGIS
+              {BRAND.wordmark}
             </span>
             <span className="block text-[10px] tracking-[0.2em] text-emerald-100/65">
-              ARANHOS
+              OPERATING ROOM
             </span>
           </span>
         </Link>
@@ -56,7 +57,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           </Link>
           <div className="flex items-center gap-4">
             <span className="text-[10px] font-bold tracking-[0.2em] text-muted-foreground lg:hidden">
-              SURGIS ARANHOS
+              {BRAND.wordmark}
             </span>
             <ThemeToggle />
           </div>
@@ -70,7 +71,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
             <span className="h-6 w-px bg-border" aria-hidden="true" />
             <span className="grid size-10 place-items-center rounded-xl bg-white p-1"><Image src="/moph-logo/moph-logo.png" alt="โลโก้กระทรวงสาธารณสุข" width={40} height={40} className="size-full object-contain" /></span>
           </div>
-          <p>SURGIS ARANHOS · ระบบทะเบียนผ่าตัด</p>
+          <p>{BRAND.wordmark} · {BRAND.descriptor}</p>
         </div>
       </section>
     </main>

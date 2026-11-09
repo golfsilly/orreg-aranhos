@@ -1,0 +1,1 @@
+ALTER TABLE `SurgeryRegisterStaff` ADD COLUMN `enteredDate` VARCHAR(10) NULL, ADD COLUMN `enteredTime` VARCHAR(8) NULL, ADD COLUMN `exitedDate` VARCHAR(10) NULL, ADD COLUMN `exitedTime` VARCHAR(8) NULL;

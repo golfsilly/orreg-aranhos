@@ -15,8 +15,6 @@ export const env = createEnv({
     HOSXP_DATABASE: z.string().min(1).optional(),
     HOSXP_USER: z.string().min(1).optional(),
     HOSXP_PASSWORD: z.string().min(1).optional(),
-    HOSXP_TLS_CA_PATH: z.string().min(1).optional(),
-    HOSXP_ALLOW_INSECURE: z.enum(["true", "false"]).default("false"),
     MOPH_HEALTH_ID_BASE_URL: z.url().optional(),
     MOPH_HEALTH_ID_CLIENT_ID: z.string().min(1).optional(),
     MOPH_HEALTH_ID_CLIENT_SECRET: z.string().min(1).optional(),

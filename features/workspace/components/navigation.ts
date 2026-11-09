@@ -2,10 +2,13 @@ import type { Permission, UserRole } from "@/lib/permissions";
 import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
+  Boxes,
+  CalendarDays,
   CircleUserRound,
   LayoutDashboard,
   ScrollText,
   Stethoscope,
+  ClipboardPlus,
   UsersRound,
 } from "lucide-react";
 
@@ -37,11 +40,25 @@ const surgeryMenu = [
     permission: "register:read",
   },
   {
+    href: "/surgery/calendar",
+    label: "ปฏิทินห้องผ่าตัด",
+    icon: CalendarDays,
+    permission: "register:read",
+  },
+  {
     href: "/surgery/reports",
-    label: "Report",
+    label: "รายงานและสถิติ",
     icon: BarChart3,
     permission: "dashboard:read",
   },
+] as const;
+
+const postoperativeMenu = [
+  { href: "/surgery/post-op", label: "ติดตามหลังผ่าตัด", icon: ClipboardPlus, permission: "postop:read" },
+] as const;
+
+const equipmentMenu = [
+  { href: "/surgery/equipment", label: "เครื่องมือและอุปกรณ์", icon: Boxes, permission: "equipment:read" },
 ] as const;
 
 export const systemDashboardItem: WorkspaceMenuItem = {
@@ -82,6 +99,20 @@ export const workspaceModules: readonly WorkspaceModule[] = [
     icon: Stethoscope,
     items: surgeryMenu,
   },
+  {
+    id: "postoperative",
+    label: "ติดตามหลังผ่าตัด",
+    subtitle: "POSTOPERATIVE CARE",
+    icon: ClipboardPlus,
+    items: postoperativeMenu,
+  },
+  {
+    id: "equipment",
+    label: "เครื่องมือและอุปกรณ์",
+    subtitle: "SURGICAL EQUIPMENT",
+    icon: Boxes,
+    items: equipmentMenu,
+  },
 ];
 export const workspaceMenu = [
   systemDashboardItem,
@@ -92,5 +123,6 @@ export const roleLabels: Record<UserRole, string> = {
   SUPERADMIN: "Superadmin",
   ADMIN: "Admin",
   NURSE: "Nurse",
+  DOCTOR: "Doctor",
   USER: "User",
 };

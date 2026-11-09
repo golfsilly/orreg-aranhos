@@ -51,6 +51,7 @@ const roleLabels: Record<UserRole, string> = {
   SUPERADMIN: "Superadmin",
   ADMIN: "Admin",
   NURSE: "Nurse",
+  DOCTOR: "Doctor",
   USER: "User",
 };
 const optional = z.string().trim().max(191);
