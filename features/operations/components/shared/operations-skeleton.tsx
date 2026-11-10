@@ -44,7 +44,7 @@ export function OperationTableSkeleton() {
 
 export function MonthlyRegisterSkeleton() {
   return <LoadingRegion label="กำลังโหลดทะเบียนผ่าตัดรายเดือน" className="mt-6 space-y-5">
-    <div className="rounded-2xl border border-border bg-card p-4 sm:p-5"><Skeleton className="h-4 w-24" /><Skeleton className="mt-2 h-3 w-48" /><div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-[76px] rounded-2xl sm:h-[84px]" />)}</div></div>
+    <div className="mx-auto w-full max-w-5xl rounded-2xl border border-border bg-card p-3 sm:p-3.5"><Skeleton className="h-4 w-24" /><Skeleton className="mt-2 h-3 w-40" /><div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-3 xl:grid-cols-4">{Array.from({ length: 8 }, (_, index) => <Skeleton key={index} className="h-12 rounded-lg sm:h-[52px]" />)}</div></div>
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="rounded-2xl border border-border p-4"><Skeleton className="h-3 w-20" /><Skeleton className="mt-3 h-7 w-16" /></div>)}</div>
     <div className="flex flex-col gap-3 rounded-2xl border border-border p-4 sm:flex-row sm:items-center sm:justify-between"><div><Skeleton className="h-4 w-52" /><Skeleton className="mt-2 h-3 w-72 max-w-full" /></div><Skeleton className="h-10 w-44 rounded-xl" /></div>
     <SearchFiltersSkeleton />

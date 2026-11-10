@@ -135,7 +135,7 @@ export function OperatingRoomCalendarPage({ canEdit }: { canEdit: boolean }) {
   const [roomFilter, setRoomFilter] = useState("ALL");
   const [selectedOperationId, setSelectedOperationId] = useState("");
   const months = calendarMonths(date, view);
-  const monthQueries = useQueries({ queries: months.map((month) => ({ queryKey: ["operations-month", month], queryFn: ({ signal }: { signal: AbortSignal }) => fetchMonth(month, signal), staleTime: 30_000 })) });
+  const monthQueries = useQueries({ queries: months.map((month) => ({ queryKey: ["operations-calendar-month", month], queryFn: ({ signal }: { signal: AbortSignal }) => fetchMonth(month, signal), staleTime: 30_000 })) });
   const loading = monthQueries.some((query) => query.isPending);
   const failedQuery = monthQueries.find((query) => query.isError);
   const operations = [...new Map(monthQueries.flatMap((query) => query.data?.operations ?? []).map((operation) => [rowId(operation), operation])).values()];
@@ -198,7 +198,7 @@ export function OperatingRoomCalendarPage({ canEdit }: { canEdit: boolean }) {
 
     {loading ? <OperatingRoomCalendarSkeleton /> : failedQuery ? <div role="alert" className="rounded-2xl border border-destructive/25 bg-destructive/5 p-5 text-sm text-destructive"><p className="m-0 font-semibold">{failedQuery.error instanceof Error ? failedQuery.error.message : "โหลดข้อมูลปฏิทินไม่สำเร็จ"}</p><button type="button" onClick={() => void Promise.all(monthQueries.map((query) => query.refetch()))} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-destructive/20 bg-background px-3 py-2 text-xs font-semibold"><RotateCcw aria-hidden="true" className="size-3.5" />ลองอีกครั้ง</button></div> : rooms.length === 0 ? <div className="rounded-2xl border border-dashed border-border bg-card px-5 py-14 text-center"><CalendarDays aria-hidden="true" className="mx-auto size-9 text-muted-foreground/50" /><p className="mb-0 mt-3 text-sm font-semibold">ไม่พบห้องผ่าตัดใน HOSxP</p><p className="mb-0 mt-1 text-xs text-muted-foreground">ตรวจสอบข้อมูลห้องผ่าตัดใน HOSxP แล้วลองโหลดใหม่</p></div> : view === "day" ? <DayTimeline date={date} rooms={roomNamesForView} operations={viewOperations} overlapIds={overlapIds} onOpen={selectedOperationIdValue} onPickRoom={setRoomFilter} /> : <PeriodOverview view={view} days={days} operations={viewOperations} overlapIds={overlapIds} onOpen={selectedOperationIdValue} onChooseDate={(day) => { setDate(day); setView("day"); }} selectedDate={date} />}
 
-    {selectedOperation && <OperationRegisterDialog key={selectedOperationId} row={selectedOperation} canEdit={canEdit} onClose={() => setSelectedOperationId("")} onChanged={() => { void queryClient.invalidateQueries({ queryKey: ["operations-month"] }); void queryClient.invalidateQueries({ queryKey: ["operations"] }); }} />}
+    {selectedOperation && <OperationRegisterDialog key={selectedOperationId} row={selectedOperation} canEdit={canEdit} onClose={() => setSelectedOperationId("")} onChanged={() => { void queryClient.invalidateQueries({ queryKey: ["operations-calendar-month"] }); void queryClient.invalidateQueries({ queryKey: ["operations-month"] }); void queryClient.invalidateQueries({ queryKey: ["operations"] }); }} />}
     <p className="m-0 text-[11px] leading-5 text-muted-foreground">ข้อมูลผู้ป่วยและเวลาผ่าตัดอ่านจาก HOSxP แบบ read-only · การแก้ไขเวลาใน OR-Reg ไม่เปลี่ยนข้อมูลต้นทาง</p>
   </div>;
 }

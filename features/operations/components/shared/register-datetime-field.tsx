@@ -16,11 +16,11 @@ export function RegisterDateTimeField({ id, label, value, fallbackDate, onChange
         const match = /^(\d{1,2}):?(\d{2})$/.exec(time);
         if (match) changeTime(`${match[1].padStart(2, "0")}:${match[2]}`);
         onBlur();
-      }} type="text" inputMode="numeric" placeholder="09:30" autoComplete="off" className="h-12 min-w-0 flex-1 bg-transparent text-lg font-semibold tabular-nums tracking-wide outline-none placeholder:font-normal placeholder:text-muted-foreground/50 disabled:opacity-50" />
+      }} type="text" inputMode="numeric" placeholder="--:--" autoComplete="off" className="h-12 min-w-0 flex-1 bg-transparent text-lg font-semibold tabular-nums tracking-wide outline-none placeholder:font-normal placeholder:text-muted-foreground/50 disabled:opacity-50" />
       <span className="shrink-0 text-xs text-muted-foreground">น.</span>
       {value && <button type="button" aria-label={`ล้าง${label}`} disabled={disabled} onClick={() => onChange("")} className="shrink-0 rounded-md px-1.5 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50">ล้าง</button>}
     </div>
-    <p id={`${id}-hint`} className="mb-0 mt-2 text-[11px] text-muted-foreground">เวลาไทย · 24 ชั่วโมง เช่น 09:30</p>
+    <p id={`${id}-hint`} className="mb-0 mt-2 text-[11px] text-muted-foreground">วันที่เริ่มต้นจากวันผ่าตัด · เวลาไทย 24 ชั่วโมง เช่น 09:30</p>
     {error && <p id={`${id}-error`} role="alert" className="mb-0 mt-2 text-xs text-destructive">{error}</p>}
   </div>;
 }

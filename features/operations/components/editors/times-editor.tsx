@@ -33,10 +33,7 @@ const schema = z.object({
     context.addIssue({ code: "custom", path: ["root"], message: "ลำดับเวลาต้องเป็น เข้าห้อง → เริ่มผ่าตัด → ผ่าตัดเสร็จ → ออกจากห้อง" });
   }
 });
-const timeGroups = [
-  { title: "ช่วงเวลาผ่าตัด", description: "ตั้งแต่เริ่มลงมือผ่าตัดจนผ่าตัดเสร็จ", fields: ["operationStartedAt", "operationEndedAt"] },
-  { title: "ช่วงเวลาใช้ห้องผ่าตัด", description: "ตั้งแต่ผู้ป่วยเข้าห้องจนออกจากห้องผ่าตัด", fields: ["roomEnteredAt", "roomExitedAt"] },
-] as const;
+const timeGroups = [{ title: "ช่วงเวลาผ่าตัด", description: "ระยะเวลาลงมือผ่าตัด · ใช้ค่า HOSxP เป็นค่าเริ่มต้นและแก้ไขได้ใน OR-Reg", fields: ["operationStartedAt", "operationEndedAt"] }] as const;
 type Values = z.infer<typeof schema>;
 
 function toLocalInput(value: unknown) {
@@ -100,7 +97,7 @@ export function TimesEditor({ operationId, onClose, operationDate, sourceStarted
   return <AppDialog open onOpenChange={(open) => { if (!open) onClose(); }} title="แก้ไขเวลา" description={`ทะเบียนผ่าตัด · รหัส HOSxP ${operationId}`}>
     {query.isLoading && <EditorSkeleton />}
     {revision !== null && <form className="space-y-5" onSubmit={form.handleSubmit(save)}>
-      <p className="rounded-xl border border-primary/15 bg-primary/5 p-4 text-sm leading-6 text-muted-foreground">เวลาเริ่ม–เสร็จใช้ค่า HOSxP เป็นค่าเริ่มต้น การแก้ไขจะบันทึกใน OR-Reg หากผ่าตัดข้ามคืน ให้เลือกวันที่สิ้นสุดเป็นวันถัดไป</p>
+      <p className="rounded-xl border border-primary/15 bg-primary/5 p-4 text-sm leading-6 text-muted-foreground">แก้ไขเวลาเริ่มและเวลาสิ้นสุดการผ่าตัดได้ที่นี่ โดยใช้ HOSxP เป็นค่าเริ่มต้น</p>
       {timeGroups.map((group) => <fieldset key={group.title} disabled={saving} className="m-0 min-w-0 rounded-2xl border border-border bg-muted/20 p-3.5 sm:p-4">
         <legend className="px-2 text-sm font-semibold text-foreground">{group.title}</legend><p className="mb-3 mt-0 text-xs leading-5 text-muted-foreground">{group.description}</p>
         <div className="grid min-w-0 gap-3 sm:grid-cols-2">{group.fields.map((name) => <Controller key={name} control={form.control} name={name} render={({ field, fieldState }) => {

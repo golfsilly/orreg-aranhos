@@ -8,7 +8,7 @@
 
 1. ใช้ Node.js รุ่นที่ Next.js 16 และ Prisma 7 รองรับ และ pnpm รุ่นที่ระบุใน `package.json` แล้วติดตั้ง dependency ด้วย `pnpm install --frozen-lockfile` (ขั้นตอนนี้สร้าง Prisma Client ด้วย)
 2. คัดลอก `.env.example` เป็น `.env` และตั้งค่า `DATABASE_URL`, `BETTER_AUTH_SECRET` และ `BETTER_AUTH_URL` สำหรับเครื่องพัฒนา โดย secret ต้องสุ่มและเก็บเป็นความลับ
-3. สร้างฐานข้อมูล MySQL **แยกสำหรับแอป** แล้วรัน `pnpm exec prisma migrate deploy` เพื่อสร้างตารางในแอป
+3. สร้างฐานข้อมูล MySQL **แยกสำหรับแอป** ชื่อ `orreg_aranhos` แล้วรัน `pnpm exec prisma migrate deploy` เพื่อสร้างตารางในแอป
 4. รัน `pnpm dev` และเปิด `http://localhost:50004` (ใช้พอร์ตเดียวกันสำหรับ `pnpm start`)
 
 บน Windows สร้าง superadmin คนแรกด้วย `pnpm.cmd setup:superadmin` แล้วกรอกชื่อ อีเมล และรหัสผ่านตามที่โปรแกรมถาม สคริปต์ใช้ฐานข้อมูลจาก `.env.development` และไม่แสดงรหัสผ่านขณะพิมพ์ จากนั้นเข้าสู่ระบบที่ `http://localhost:50004/auth/signin` สคริปต์ทำงานได้เมื่อยังไม่มีบัญชีเท่านั้น รหัสผ่านต้องยาว 6–128 ตัวอักษร โดยไม่มีข้อกำหนดชนิดตัวอักษร

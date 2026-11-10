@@ -13,7 +13,7 @@ import { anesthesiaOptions, registerDetailsSchema, type Anesthesia, type MinorPe
 import { EditorSkeleton } from "../shared/operations-skeleton";
 
 const emptyDetails: RegisterDetails = { patho: false, preOp: false, postOp: false, anesthesia: null, urgency: null, surgeryClass: null, minorPeriod: null, diagnosis: "", remark: "" };
-type DetailsResponse = RegisterDetails & { revision: number; operations: string[] };
+type DetailsResponse = RegisterDetails & { revision: number };
 
 export function DetailsEditor({ operationId, onClose, onSaved }: { operationId: string; onClose: () => void; onSaved: (details: RegisterDetails) => void }) {
   const form = useForm<RegisterDetails>({ resolver: zodResolver(registerDetailsSchema), defaultValues: emptyDetails });
@@ -32,9 +32,8 @@ export function DetailsEditor({ operationId, onClose, onSaved }: { operationId: 
   });
   useEffect(() => {
     if (!query.data) return;
-    const { revision: currentRevision, operations: _operations, ...details } = query.data;
+    const { revision: currentRevision, ...details } = query.data;
     void currentRevision;
-    void _operations;
     form.reset({ ...emptyDetails, ...details, remark: details.remark ?? "" });
   }, [query.data, form]);
   const revision = savedRevision ?? query.data?.revision ?? null;
@@ -59,10 +58,6 @@ export function DetailsEditor({ operationId, onClose, onSaved }: { operationId: 
   return <AppDialog open onOpenChange={(open) => { if (!open) onClose(); }} title="ข้อมูลเพิ่มเติม" description={`ข้อมูลสำหรับทะเบียนผ่าตัด ${operationId}`}>
     {query.isLoading && <EditorSkeleton details />}
     {revision !== null && <form className="space-y-6" onSubmit={form.handleSubmit(save)}>
-      <section className="rounded-2xl border border-border bg-muted/20 p-4 sm:p-5" aria-label="รายการผ่าตัดจาก HOSxP">
-        <h3 className="m-0 text-sm font-semibold">Operation <span className="font-normal text-muted-foreground">จาก HOSxP</span></h3>
-        {query.data?.operations.length ? <ul className="mb-0 mt-3 space-y-2 pl-5 text-sm leading-6">{query.data.operations.map((operation, index) => <li key={`${operation}-${index}`}>{operation}</li>)}</ul> : <p className="mb-0 mt-2 text-sm text-muted-foreground">ไม่พบรายการ Operation ใน HOSxP</p>}
-      </section>
       <label className="block text-sm font-medium">Diagnosis
         <textarea {...form.register("diagnosis")} maxLength={4000} rows={3} placeholder="กรอก Diagnosis" disabled={saving} className="mt-2 block min-h-24 w-full resize-y rounded-xl border border-input bg-background px-3.5 py-3 leading-6 outline-none transition focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60" />
         <span className="mt-1 block text-right text-xs font-normal text-muted-foreground">{(values.diagnosis ?? "").length}/4000</span>

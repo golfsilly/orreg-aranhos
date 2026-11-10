@@ -201,6 +201,7 @@ model SurgeryRegister {
   @@unique([fiscalYear, calendarMonth, departmentId, sequence], map: "SurgeryRegister_period_department_sequence_key")
   @@index([createdById])
   @@index([departmentId, operationDate])
+  @@index([operationDate, id], map: "SurgeryRegister_operationDate_id_idx")
 }
 
 model SurgeryRegisterStaff {
@@ -219,6 +220,7 @@ model SurgeryRegisterStaff {
   exitedTime        String?         @db.VarChar(8)
 
   @@index([registerId])
+  @@index([positionId, registerId], map: "SurgeryRegisterStaff_positionId_registerId_idx")
 }
 
 model SurgeryRegisterTimeChange {

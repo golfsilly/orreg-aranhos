@@ -27,8 +27,14 @@ FROM operation_list o
   LEFT JOIN spclty sp ON sp.spclty = o.spclty
   LEFT JOIN (
     SELECT operation_id,
-      MIN(begin_datetime) AS operation_started_at,
-      MAX(end_datetime) AS operation_ended_at,
+      COALESCE(
+        MIN(CASE WHEN TIME(begin_datetime) <> '00:00:00' THEN begin_datetime END),
+        MIN(begin_datetime)
+      ) AS operation_started_at,
+      COALESCE(
+        MAX(CASE WHEN TIME(end_datetime) <> '00:00:00' THEN end_datetime END),
+        MAX(end_datetime)
+      ) AS operation_ended_at,
       GROUP_CONCAT(DISTINCT NULLIF(TRIM(ow.operation_wound_name), '') ORDER BY ow.operation_wound_name SEPARATOR ', ') AS wound_names
     FROM operation_detail od
       LEFT JOIN operation_wound ow ON ow.operation_wound_id = od.operation_wound_id
@@ -56,8 +62,14 @@ FROM operation_list o
   LEFT JOIN ward w ON w.ward = t.ward
   LEFT JOIN (
     SELECT operation_id,
-      MIN(begin_datetime) AS operation_started_at,
-      MAX(end_datetime) AS operation_ended_at
+      COALESCE(
+        MIN(CASE WHEN TIME(begin_datetime) <> '00:00:00' THEN begin_datetime END),
+        MIN(begin_datetime)
+      ) AS operation_started_at,
+      COALESCE(
+        MAX(CASE WHEN TIME(end_datetime) <> '00:00:00' THEN end_datetime END),
+        MAX(end_datetime)
+      ) AS operation_ended_at
     FROM operation_detail GROUP BY operation_id
   ) detail ON detail.operation_id = o.operation_id
   LEFT JOIN operation_detail d ON d.operation_id = o.operation_id

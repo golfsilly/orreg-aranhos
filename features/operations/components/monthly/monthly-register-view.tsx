@@ -5,16 +5,18 @@ import { Dialog } from "@base-ui/react/dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createColumnHelper, createPaginatedRowModel, rowPaginationFeature, tableFeatures, useTable } from "@tanstack/react-table";
 import { toast } from "sonner";
+import { Eye, SquarePen } from "lucide-react";
 import { formatThaiDateValue } from "../shared/thai-date-picker";
 import { MonthlyRegisterSkeleton } from "../shared/operations-skeleton";
 import { OperationsRegisterDisplay } from "../shared/operations-register-display";
 import { OperationsTableControls, type OperationsFilterKey } from "../shared/operations-table-controls";
 
-import { defaultColumnVisibility, defaultRegisterPageSize, getRegisterColumns, type RegisterColumnId } from "../../lib/register-columns";
+import { defaultRegisterPageSize, getRegisterColumns } from "../../lib/register-columns";
 import { registerTime } from "../../lib/register-time";
 import { sortRegisterRows, type RegisterSortMode } from "../../lib/register-sort";
 import { OperationsPagination } from "../shared/operations-pagination";
 import { OperationRegisterDialog } from "../shared/operation-register-dialog";
+import { useRegisterColumnVisibility } from "../shared/use-register-column-visibility";
 
 type Row = Record<string, unknown>;
 const emptyRows: Row[] = [];
@@ -60,7 +62,7 @@ export function MonthlyRegisterView({ canSync }: { canSync: boolean }) {
   const [departmentId, setDepartmentId] = useState("");
   const [searchText, setSearchText] = useState("");
   const [filters, setFilters] = useState<Record<OperationsFilterKey, string>>({ ward: "ALL", urgency: "ALL", surgeryClass: "ALL", anesthesia: "ALL", room: "ALL" });
-  const [columnVisibility, setColumnVisibility] = useState<Record<RegisterColumnId, boolean>>(defaultColumnVisibility);
+  const { columnVisibility, changeColumnVisibility, resetColumnVisibility } = useRegisterColumnVisibility();
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(defaultRegisterPageSize);
   const [registerSort, setRegisterSort] = useState<RegisterSortMode>("operationId");
@@ -109,7 +111,7 @@ export function MonthlyRegisterView({ canSync }: { canSync: boolean }) {
   const pageRows = table.getRowModel().rows.map((row) => row.original);
   const registered = visibleRows.filter((row) => typeof row.registerNumber === "string" && !row.needsDateSync);
   const departmentRegistered = departmentRows.filter((row) => typeof row.registerNumber === "string" && !row.needsDateSync).length;
-  const departmentNeedsNumber = departmentRows.filter((row) => row.needsDateSync).length;
+  const departmentNeedsNumber = departmentRows.filter((row) => typeof row.registerNumber !== "string" || row.needsDateSync).length;
   const departmentEmergency = departmentRows.filter((row) => label(row.emergency_name).toLocaleLowerCase("th").includes("emergency")).length;
   const sequenceValues = registered.map((row) => Number(String(row.registerNumber).split("/")[0])).filter(Number.isFinite);
   const rangeLabel = !departmentId
@@ -118,18 +120,18 @@ export function MonthlyRegisterView({ canSync }: { canSync: boolean }) {
       : "ยังไม่มีเลขทะเบียนของแผนกนี้ในเดือนที่เลือก";
   const year = Number(month.slice(0, 4));
   const monthNumber = Number(month.slice(5, 7));
-  const fiscalYearOptions = Array.from({ length: Math.max(0, currentFiscalYear() - 2565 + 1) }, (_, index) => 2565 + index);
+  const firstFiscalYear = 2569;
+  const fiscalYearOptions = Array.from({ length: Math.max(0, currentFiscalYear() - firstFiscalYear + 1) }, (_, index) => firstFiscalYear + index);
   const monthName = new Intl.DateTimeFormat("th-TH", { month: "long", timeZone: "Asia/Bangkok" }).format(new Date(Date.UTC(year, monthNumber - 1, 15, 12)));
   const monthTitle = `${monthName} · ปีงบประมาณ ${year + 543 + (monthNumber >= 10 ? 1 : 0)}`;
   const updateMonth = (value: string) => { setMonth(value); setPageIndex(0); setSearchText(""); setFilters({ ward: "ALL", urgency: "ALL", surgeryClass: "ALL", anesthesia: "ALL", room: "ALL" }); };
   const changeSearch = (value: string) => { setSearchText(value); setPageIndex(0); };
   const changeFilter = (key: OperationsFilterKey, value: string) => { setFilters((current) => ({ ...current, [key]: value })); setPageIndex(0); };
   const clearFilters = () => { setSearchText(""); setFilters({ ward: "ALL", urgency: "ALL", surgeryClass: "ALL", anesthesia: "ALL", room: "ALL" }); setPageIndex(0); };
-  const changeColumnVisibility = (id: string, visible: boolean) => setColumnVisibility((current) => ({ ...current, [id]: visible }));
-  const resetColumns = () => setColumnVisibility(defaultColumnVisibility());
+  const resetColumns = () => { resetColumnVisibility(); window.dispatchEvent(new Event("orreg-reset-register-column-order")); };
   const cellForColumn = (id: string, row: Row) => {
     switch (id) {
-      case "number": return row.needsDateSync ? <span className="text-xs font-medium text-amber-700 dark:text-amber-300">รอซิงก์</span> : label(row.registerNumber);
+      case "number": return typeof row.registerNumber !== "string" || row.needsDateSync ? <span className="text-xs font-medium text-amber-700 dark:text-amber-300">รอจัดทะเบียน</span> : label(row.registerNumber);
       case "operationId": return <span className="font-mono text-xs tabular-nums text-muted-foreground">{label(row.operation_id)}</span>;
       case "hn": return label(row.hn);
       case "patient": return label(row.ptname);
@@ -139,7 +141,7 @@ export function MonthlyRegisterView({ canSync }: { canSync: boolean }) {
       case "startTime": return <div className="flex min-h-12 whitespace-nowrap">{Boolean(row.operationStartedAtEdited) && <span aria-label="เวลาเริ่มผ่าถูกแก้ไข" className="w-1.5 shrink-0 bg-emerald-600 dark:bg-emerald-400" />}<span title={registerTime(row.effectiveOperationStartedAt, true)} className="px-3 py-3.5">{registerTime(row.effectiveOperationStartedAt)}</span></div>;
       case "endTime": return <div className="flex min-h-12 whitespace-nowrap">{Boolean(row.operationEndedAtEdited) && <span aria-label="เวลาผ่าเสร็จถูกแก้ไข" className="w-1.5 shrink-0 bg-emerald-600 dark:bg-emerald-400" />}<span title={registerTime(row.effectiveOperationEndedAt, true)} className="px-3 py-3.5">{registerTime(row.effectiveOperationEndedAt)}</span></div>;
       case "status": return label(row.status_name);
-      case "actions": return <button type="button" onClick={() => setSelectedOperationId(label(row.operation_id))} className="whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-ring">{canSync ? "ดู / แก้ไข" : "ดูรายละเอียด"}</button>;
+      case "actions": return <button type="button" onClick={() => setSelectedOperationId(label(row.operation_id))} title={canSync ? "ดูและแก้ไขทะเบียน" : "ดูรายละเอียดทะเบียน"} aria-label={canSync ? "ดูและแก้ไขทะเบียน" : "ดูรายละเอียดทะเบียน"} className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-background text-primary shadow-sm transition hover:border-primary/30 hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-ring">{canSync ? <SquarePen aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}</button>;
       case "room": return label(row.room_name);
       case "urgency": return label(row.emergency_name);
       case "diagnosis": return <span className="block max-w-[320px] truncate" title={label(row.diagnosis)}>{label(row.diagnosis)}</span>;
@@ -160,7 +162,10 @@ export function MonthlyRegisterView({ canSync }: { canSync: boolean }) {
     },
     onSuccess: async (result) => {
       toast.success(`ซิงก์ทะเบียนแล้ว · เพิ่ม ${numberLabel(result.created)} · ออกเลขใหม่ ${numberLabel(result.renumbered)} · ย้ายแผนก ${numberLabel(result.departmentUpdated)}`);
-      await queryClient.invalidateQueries({ queryKey: ["operations-month", month] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["operations-month", month] }),
+        queryClient.invalidateQueries({ queryKey: ["operations-calendar-month"] }),
+      ]);
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "ซิงก์ข้อมูลไม่สำเร็จ"),
   });
@@ -201,10 +206,10 @@ export function MonthlyRegisterView({ canSync }: { canSync: boolean }) {
     </header>
 
     {query.isPending ? <MonthlyRegisterSkeleton /> : query.isError ? <div className="mt-5 rounded-xl border border-destructive/25 bg-destructive/5 p-4 text-sm text-destructive" role="alert">{query.error instanceof Error ? query.error.message : "โหลดทะเบียนรายเดือนไม่สำเร็จ"}</div> : <>
-      <section aria-label="เลือกแผนก" className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
-      <div className="mb-3 flex items-end justify-between gap-3"><div><h3 className="m-0 text-sm font-semibold">แผนก</h3><p className="mb-0 mt-1 text-xs text-muted-foreground">เลือกหนึ่งแผนกเพื่อเปิดทะเบียนรายเดือน</p></div><span className="shrink-0 text-xs text-muted-foreground">{numberLabel(departments.length)} แผนก</span></div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
-        {departments.map((department) => { const count = rows.filter((row) => label(row.sourceDepartmentId) === department.id).length; const selected = departmentId === department.id; return <button type="button" key={department.id} onClick={() => { setDepartmentId(department.id); setPageIndex(0); }} aria-pressed={selected} className={`group flex min-h-[76px] min-w-0 items-center justify-between gap-2 rounded-2xl border p-3 text-left transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:min-h-[84px] sm:p-4 ${selected ? "border-primary/50 bg-primary/[0.08] shadow-[0_8px_24px_-16px_color-mix(in_oklab,var(--primary)_75%,transparent)] ring-1 ring-primary/20" : "border-border bg-background hover:border-primary/35 hover:bg-muted/50"}`}><span className="min-w-0"><span className={`block truncate text-xs font-semibold sm:text-sm ${selected ? "text-primary" : "text-foreground"}`}>{department.name}</span><span className="mt-1 block text-[10px] text-muted-foreground sm:text-xs">รายการในเดือนนี้</span></span><span className={`grid size-9 shrink-0 place-items-center rounded-xl text-xs font-bold tabular-nums ${selected ? "bg-primary text-primary-foreground" : "bg-muted text-foreground group-hover:bg-primary/10 group-hover:text-primary"}`}>{numberLabel(count)}</span></button>; })}
+      <section aria-label="เลือกแผนก" className="mx-auto w-full max-w-5xl rounded-2xl border border-border bg-card p-3 shadow-sm sm:p-3.5">
+      <div className="mb-2.5 flex items-center justify-between gap-3"><div><h3 className="m-0 text-sm font-semibold">แผนก</h3><p className="mb-0 mt-0.5 text-[11px] text-muted-foreground">เลือกแผนกเพื่อเปิดทะเบียนรายเดือน</p></div><span className="shrink-0 text-[11px] text-muted-foreground">{numberLabel(departments.length)} แผนก</span></div>
+      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 xl:grid-cols-4">
+        {departments.map((department) => { const count = rows.filter((row) => label(row.sourceDepartmentId) === department.id).length; const selected = departmentId === department.id; return <button type="button" key={department.id} onClick={() => { setDepartmentId(department.id); setPageIndex(0); }} aria-pressed={selected} className={`group flex min-h-12 min-w-0 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:min-h-[52px] ${selected ? "border-primary/50 bg-primary/[0.08] shadow-[0_8px_24px_-16px_color-mix(in_oklab,var(--primary)_75%,transparent)] ring-1 ring-primary/20" : "border-border bg-background hover:border-primary/35 hover:bg-muted/50"}`}><span className={`min-w-0 truncate text-xs font-semibold sm:text-[13px] ${selected ? "text-primary" : "text-foreground"}`}>{department.name}</span><span className={`grid size-7 shrink-0 place-items-center rounded-md text-[11px] font-bold tabular-nums ${selected ? "bg-primary text-primary-foreground" : "bg-muted text-foreground group-hover:bg-primary/10 group-hover:text-primary"}`}>{numberLabel(count)}</span></button>; })}
       </div>
       </section>
 
@@ -230,6 +235,6 @@ export function MonthlyRegisterView({ canSync }: { canSync: boolean }) {
       </>}
     </>}
     </section>
-    {selectedOperation && <OperationRegisterDialog key={selectedOperationId} row={selectedOperation} canEdit={canSync} onClose={() => setSelectedOperationId("")} onChanged={() => { void queryClient.invalidateQueries({ queryKey: ["operations-month", month] }); void queryClient.invalidateQueries({ queryKey: ["operations"] }); }} />}
+    {selectedOperation && <OperationRegisterDialog key={selectedOperationId} row={selectedOperation} canEdit={canSync} onClose={() => setSelectedOperationId("")} onChanged={() => { void queryClient.invalidateQueries({ queryKey: ["operations-month", month] }); void queryClient.invalidateQueries({ queryKey: ["operations-calendar-month"] }); void queryClient.invalidateQueries({ queryKey: ["operations"] }); }} />}
   </>;
 }

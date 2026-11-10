@@ -37,6 +37,27 @@ function durationMinutes(startValue: unknown, endValue: unknown, operationDate: 
 
 const text = (value: unknown) => typeof value === "string" ? value.trim() : value == null ? "" : String(value).trim();
 
+function hosxpDateTime(value: unknown, operationDate: unknown): Date | null {
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value !== "string") return null;
+  const raw = value.trim();
+  const dateTime = /^(\d{4}-\d{2}-\d{2})[ T](\d{1,2}:\d{2}(?::\d{2})?)(Z|[+-]\d{2}:?\d{2})?$/.exec(raw);
+  if (dateTime) {
+    const normalized = `${dateTime[1]}T${dateTime[2]}${dateTime[3] ? dateTime[3].replace(/([+-]\d{2})(\d{2})$/, "$1:$2") : "+07:00"}`;
+    const parsed = new Date(normalized);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  const clock = /^(\d{1,2}:\d{2}(?::\d{2})?)$/.exec(raw);
+  const date = typeof operationDate === "string"
+    ? operationDate.slice(0, 10)
+    : operationDate instanceof Date
+      ? operationDate.toISOString().slice(0, 10)
+      : "";
+  if (!clock || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const parsed = new Date(`${date}T${clock[1]}+07:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export async function GET(request: Request) {
   const user = await getAuthorizedUser("dashboard:read");
   if (!user) {
@@ -56,7 +77,7 @@ export async function GET(request: Request) {
     const [registers, doctorRows] = await prisma.$transaction((tx) => Promise.all([
       tx.surgeryRegister.findMany({
         where: { operationDate: range },
-        select: { id: true, operationDate: true, hosxpOperationId: true, roomEnteredAt: true, operationStartedAt: true, roomExitedAt: true },
+        select: { id: true, operationDate: true, hosxpOperationId: true, roomEnteredAt: true, operationStartedAt: true, operationEndedAt: true, roomExitedAt: true },
       }),
       tx.surgeryRegisterStaff.findMany({
         where: { positionId: 1, register: { operationDate: range } },
@@ -100,11 +121,25 @@ export async function GET(request: Request) {
       }
     }
     const roomByOperation = new Map([...sourceById.entries()].map(([id, row]) => [id, row.room_id == null ? "UNSPECIFIED" : String(row.room_id)]));
+    let roomTimeCases = 0;
+    let estimatedRoomCases = 0;
+    let missingUtilizationTimes = 0;
     const intervals = registers.flatMap((register) => {
       const roomId = register.hosxpOperationId ? roomByOperation.get(register.hosxpOperationId) : undefined;
-      return roomId && register.roomEnteredAt && register.roomExitedAt
-        ? [{ roomId, start: register.roomEnteredAt, end: register.roomExitedAt }]
-        : [];
+      if (!roomId) return [];
+      if (register.roomEnteredAt && register.roomExitedAt) {
+        roomTimeCases += 1;
+        return [{ roomId, start: register.roomEnteredAt, end: register.roomExitedAt }];
+      }
+      const source = register.hosxpOperationId ? sourceById.get(register.hosxpOperationId) : undefined;
+      const start = register.operationStartedAt ?? hosxpDateTime(source?.operation_started_at, source?.request_operation_date);
+      const end = register.operationEndedAt ?? hosxpDateTime(source?.operation_ended_at, source?.request_operation_date);
+      if (start && end) {
+        estimatedRoomCases += 1;
+        return [{ roomId, start, end }];
+      }
+      missingUtilizationTimes += 1;
+      return [];
     });
     const utilization = hosxpAvailable ? roomUtilization(start, end, rooms, intervals) : null;
     const sourceCases = [...sourceById.entries()].map(([id, row]) => ({ id, row }));
@@ -148,6 +183,9 @@ export async function GET(request: Request) {
       durationBuckets,
       utilization,
       missingRoomTimes: registers.filter((row) => !row.roomEnteredAt || !row.roomExitedAt).length,
+      roomTimeCases,
+      estimatedRoomCases,
+      missingUtilizationTimes,
       hosxpAvailable,
     };
     await writeAudit(prisma, { actorId: user.id, event: "REPORT_STATISTICS_READ", outcome: "SUCCESS", targetId, metadata: { total: registers.length, reportPeriod: response.period } });

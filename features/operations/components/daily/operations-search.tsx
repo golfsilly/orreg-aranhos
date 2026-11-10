@@ -7,16 +7,18 @@ import { toast } from "sonner";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Eye, SquarePen } from "lucide-react";
 import { OperationTableSkeleton } from "../shared/operations-skeleton";
 import { formatThaiDateValue, ThaiDatePicker } from "../shared/thai-date-picker";
 import { OperationsTableControls, type OperationsFilterKey } from "../shared/operations-table-controls";
 import { OperationsRegisterDisplay } from "../shared/operations-register-display";
 import { OperationRegisterDialog } from "../shared/operation-register-dialog";
 
-import { defaultColumnVisibility, defaultRegisterPageSize, getRegisterColumns, type RegisterColumnId } from "../../lib/register-columns";
+import { defaultRegisterPageSize, getRegisterColumns } from "../../lib/register-columns";
 import { registerTime } from "../../lib/register-time";
 import { sortRegisterRows, type RegisterSortMode } from "../../lib/register-sort";
 import { OperationsPagination } from "../shared/operations-pagination";
+import { useRegisterColumnVisibility } from "../shared/use-register-column-visibility";
 
 type Row = Record<string, unknown>;
 const label = (value: unknown) => typeof value === "string" || typeof value === "number" ? String(value) : "—";
@@ -66,7 +68,7 @@ export function OperationsSearch({ canSync }: { canSync: boolean }) {
   const [pageSize, setPageSize] = useState(defaultRegisterPageSize);
   const [searchText, setSearchText] = useState("");
   const [filters, setFilters] = useState<Record<OperationsFilterKey, string>>({ ward: "ALL", urgency: "ALL", surgeryClass: "ALL", anesthesia: "ALL", room: "ALL" });
-  const [columnVisibility, setColumnVisibility] = useState<Record<RegisterColumnId, boolean>>(defaultColumnVisibility);
+  const { columnVisibility, changeColumnVisibility, resetColumnVisibility } = useRegisterColumnVisibility();
   const [error, setError] = useState("");
   const [selectedOperationId, setSelectedOperationId] = useState("");
   const [registerSort, setRegisterSort] = useState<RegisterSortMode>("operationId");
@@ -126,12 +128,11 @@ export function OperationsSearch({ canSync }: { canSync: boolean }) {
     } catch { setError("ไม่สามารถซิงก์ได้ โปรดตรวจสอบการเชื่อมต่อหรือติดต่อผู้ดูแลระบบ"); }
   }
 
-  const changeColumnVisibility = (id: string, visible: boolean) => setColumnVisibility((current) => ({ ...current, [id]: visible }));
-  const resetColumns = () => setColumnVisibility(defaultColumnVisibility());
+  const resetColumns = () => { resetColumnVisibility(); window.dispatchEvent(new Event("orreg-reset-register-column-order")); };
   const clearFilters = () => { setSearchText(""); setDepartmentFilter("ALL"); setFilters({ ward: "ALL", urgency: "ALL", surgeryClass: "ALL", anesthesia: "ALL", room: "ALL" }); };
   const cellForColumn = (id: string, row: Row) => {
     switch (id) {
-      case "number": return row.needsDateSync ? <>{label(row.registerNumber)}<span className="ml-1 text-xs text-amber-700 dark:text-amber-300">รอซิงก์</span></> : label(row.registerNumber);
+      case "number": return typeof row.registerNumber !== "string" || row.needsDateSync ? <span className="text-xs font-medium text-amber-700 dark:text-amber-300">รอจัดทะเบียน</span> : label(row.registerNumber);
       case "operationId": return <span className="font-mono text-xs tabular-nums text-muted-foreground">{label(row.operation_id)}</span>;
       case "hn": return label(row.hn);
       case "patient": return label(row.ptname);
@@ -152,7 +153,7 @@ export function OperationsSearch({ canSync }: { canSync: boolean }) {
       case "anesthesia": return label(row.anesthesia);
       case "remark": return <span className="block max-w-[240px] truncate" title={label(row.remark)}>{label(row.remark)}</span>;
       case "status": return label(row.status_name);
-      case "actions": return <button type="button" onClick={() => setSelectedOperationId(label(row.operation_id))} className="whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-ring">{canSync ? "ดู / แก้ไข" : "ดูรายละเอียด"}</button>;
+      case "actions": return <button type="button" onClick={() => setSelectedOperationId(label(row.operation_id))} title={canSync ? "ดูและแก้ไขทะเบียน" : "ดูรายละเอียดทะเบียน"} aria-label={canSync ? "ดูและแก้ไขทะเบียน" : "ดูรายละเอียดทะเบียน"} className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-background text-primary shadow-sm transition hover:border-primary/30 hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-ring">{canSync ? <SquarePen aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}</button>;
     }
   };
 

@@ -33,7 +33,7 @@ export function SignInForm({ providerOnly = false, providerEnabled, providerErro
     try {
       const result = identity.includes("@") ? await authClient.signIn.email({ email: identity, password, callbackURL: "/dashboard" }) : await authClient.signIn.username({ username: identity, password, callbackURL: "/dashboard" });
       if (result.error) setError("ชื่อผู้ใช้ อีเมล หรือรหัสผ่านไม่ถูกต้อง หรือบัญชีไม่พร้อมใช้งาน");
-      else { router.replace("/dashboard"); router.refresh(); }
+      else router.replace("/dashboard");
     } catch { setError("ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง"); }
     finally { setPending(false); }
   }

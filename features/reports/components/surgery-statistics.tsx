@@ -27,6 +27,9 @@ type StatisticsResponse = {
   durationBuckets: { name: string; count: number }[];
   utilization: null | { usedMinutes: number; availableMinutes: number; percent: number; rooms: { id: string; name: string; usedMinutes: number; availableMinutes: number; percent: number }[] };
   missingRoomTimes: number;
+  roomTimeCases: number;
+  estimatedRoomCases: number;
+  missingUtilizationTimes: number;
   hosxpAvailable: boolean;
 };
 
@@ -69,16 +72,42 @@ function DoctorsChart({ doctors }: { doctors: StatisticsResponse["doctors"] }) {
   </section>;
 }
 
-function UtilizationPanel({ data, hosxpAvailable, missingRoomTimes }: { data: StatisticsResponse["utilization"]; hosxpAvailable: boolean; missingRoomTimes: number }) {
-  return <section className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm sm:p-5">
-    <div className="flex items-start justify-between gap-3"><div><h2 className="m-0 text-base font-semibold tracking-tight">การใช้ห้องผ่าตัด</h2><p className="mb-0 mt-1 text-xs text-muted-foreground">เวลาใช้จริงเทียบเวลาพร้อมใช้ 24 ชม. ต่อห้อง/วัน</p></div><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300"><Activity aria-hidden="true" className="size-[18px]" /></span></div>
-    {!hosxpAvailable ? <div className="mt-5 flex gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-4 text-sm text-amber-900 dark:text-amber-200"><AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" /><p className="m-0">ยังคำนวณ Utilization ไม่ได้ เพราะเชื่อมต่อข้อมูลห้องจาก HOSxP ไม่สำเร็จ</p></div> : !data ? <div className="mt-5 rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">ไม่พบข้อมูลห้องผ่าตัดสำหรับคำนวณ</div> : <>
-      <div className="mt-5 flex items-end gap-2"><strong className="text-4xl font-semibold tracking-tight tabular-nums">{data.percent.toLocaleString("th-TH", { maximumFractionDigits: 1 })}%</strong><span className="mb-1 text-xs text-muted-foreground">ภาพรวมทุกห้อง</span></div>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-[width]" style={{ width: `${data.percent}%` }} /></div>
-      <p className="mb-0 mt-2 text-xs text-muted-foreground">ใช้ห้อง {hourText(data.usedMinutes)} จาก {hourText(data.availableMinutes)} ที่พร้อมใช้ · ไม่นับช่วงเวลาซ้อนซ้ำ</p>
-      <div className="mt-5 space-y-4 border-t border-border pt-4">{data.rooms.map((room) => <div key={room.id}><div className="mb-1.5 flex items-center justify-between gap-3 text-xs"><span className="min-w-0 truncate font-medium">{room.name}</span><span className="shrink-0 tabular-nums text-muted-foreground">{room.percent.toLocaleString("th-TH", { maximumFractionDigits: 1 })}% · {hourText(room.usedMinutes)}</span></div><div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary/75" style={{ width: `${room.percent}%` }} /></div></div>)}</div>
-      <p className="mb-0 mt-4 border-t border-border pt-3 text-[11px] leading-5 text-muted-foreground">ข้อมูลเวลาเข้าห้อง/ออกห้องที่ยังไม่ครบ {missingRoomTimes.toLocaleString("th-TH")} เคส ไม่นำมาคิดเป็นเวลาใช้ห้อง</p>
-    </>}
+function UtilizationPanel({ data, hosxpAvailable, missingRoomTimes, roomTimeCases, estimatedRoomCases, missingUtilizationTimes }: {
+  data: StatisticsResponse["utilization"];
+  hosxpAvailable: boolean;
+  missingRoomTimes: number;
+  roomTimeCases: number;
+  estimatedRoomCases: number;
+  missingUtilizationTimes: number;
+}) {
+  return <section className="overflow-hidden rounded-3xl border border-border/80 bg-card shadow-sm">
+    <div className="flex items-start justify-between gap-4 border-b border-border/70 px-5 py-5 sm:px-7 sm:py-6">
+      <div><p className="mb-1 text-[10px] font-bold tracking-[0.16em] text-primary">OPERATING ROOM EFFICIENCY</p><h2 className="m-0 text-lg font-semibold tracking-tight">การใช้ห้องผ่าตัด</h2><p className="mb-0 mt-1 text-xs text-muted-foreground">สัดส่วนเวลาที่ใช้ต่อเวลาพร้อมใช้ 24 ชั่วโมงต่อห้อง/วัน</p></div>
+      <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-amber-500/10 text-amber-700 dark:text-amber-300"><Activity aria-hidden="true" className="size-5" /></span>
+    </div>
+    <div className="p-5 sm:p-7">
+      {!hosxpAvailable ? <div className="flex gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-4 text-sm text-amber-900 dark:text-amber-200"><AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" /><p className="m-0">ยังคำนวณ Utilization ไม่ได้ เพราะเชื่อมต่อข้อมูลห้องจาก HOSxP ไม่สำเร็จ</p></div> : !data ? <div className="rounded-2xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">HOSxP ยังไม่ส่งรายชื่อห้องผ่าตัดสำหรับช่วงนี้</div> : <>
+        <div className="grid gap-6 lg:grid-cols-[minmax(190px,0.7fr)_minmax(0,1.3fr)] lg:items-center">
+          <div className="flex items-center gap-5 rounded-2xl bg-muted/35 p-4 sm:p-5">
+            <div className="grid size-24 shrink-0 place-items-center rounded-full p-2" role="img" aria-label={`Utilization รวม ${data.percent.toLocaleString("th-TH", { maximumFractionDigits: 1 })}%`} style={{ background: `conic-gradient(var(--primary) ${data.percent}%, var(--muted) 0)` }}>
+              <div className="grid size-full place-items-center rounded-full bg-card"><strong className="text-2xl font-semibold tracking-tight tabular-nums">{data.percent.toLocaleString("th-TH", { maximumFractionDigits: 1 })}%</strong></div>
+            </div>
+            <div className="min-w-0"><p className="m-0 text-sm font-semibold">ภาพรวมทุกห้อง</p><p className="mb-0 mt-1 text-xs leading-5 text-muted-foreground">ใช้ห้อง {hourText(data.usedMinutes)} จาก {hourText(data.availableMinutes)}</p><p className="mb-0 mt-1 text-[10px] text-muted-foreground">{data.rooms.length} ห้อง · ไม่นับช่วงเวลาซ้อน</p></div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{data.rooms.map((room) => <article key={room.id} className="rounded-2xl border border-border/70 bg-background/65 p-3.5">
+            <div className="flex items-start justify-between gap-2"><span className="min-w-0 truncate text-xs font-semibold">{room.name}</span><span className="shrink-0 text-xs font-bold tabular-nums text-primary">{room.percent.toLocaleString("th-TH", { maximumFractionDigits: 1 })}%</span></div>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${room.percent}%` }} /></div>
+            <p className="mb-0 mt-2 text-[10px] tabular-nums text-muted-foreground">ใช้ {hourText(room.usedMinutes)} / {hourText(room.availableMinutes)}</p>
+          </article>)}</div>
+        </div>
+        <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 rounded-2xl border border-border/70 bg-background/60 px-4 py-3 text-[11px] text-muted-foreground">
+          <span>ใช้เวลาเข้า–ออกห้อง {roomTimeCases.toLocaleString("th-TH")} เคส</span>
+          <span>ประมาณจากเวลาเริ่ม–เสร็จ {estimatedRoomCases.toLocaleString("th-TH")} เคส</span>
+          <span>ไม่มีเวลาครบ {missingUtilizationTimes.toLocaleString("th-TH")} เคส</span>
+        </div>
+        {missingRoomTimes > 0 && <p className="mb-0 mt-3 text-[10px] leading-5 text-muted-foreground">ยังไม่มีเวลาเข้า–ออกห้องที่บันทึกใน OR-Reg {missingRoomTimes.toLocaleString("th-TH")} เคส ระบบจึงใช้เวลาเริ่ม–เสร็จผ่าตัดจาก HOSxP หรือ OR-Reg ประมาณแทนเมื่อมีข้อมูลครบ</p>}
+      </>}
+    </div>
   </section>;
 }
 
@@ -107,7 +136,7 @@ function OperationsInsights({ data }: { data: StatisticsResponse }) {
   const emergency = ["Elective", "Emergency"].map((name) => data.emergency.find((row) => row.name === name) ?? { name, count: 0 });
   const emergencyRows = [...emergency, ...(data.emergency.some((row) => row.name === "ไม่ระบุ") ? [{ name: "ไม่ระบุ", count: data.emergency.find((row) => row.name === "ไม่ระบุ")!.count }] : [])];
   const durationLabel = data.averageDurationMinutes === null ? "—" : data.averageDurationMinutes < 60 ? `${Math.round(data.averageDurationMinutes)} นาที` : `${Math.floor(data.averageDurationMinutes / 60)} ชม. ${Math.round(data.averageDurationMinutes % 60)} นาที`;
-  return <div className="grid gap-4 xl:grid-cols-2">
+  return <div className="grid items-start gap-4 xl:grid-cols-2">
     <EmergencyMix rows={emergencyRows} total={data.sourceCases} />
     <BreakdownPanel title="หัตถการที่พบบ่อย" description="นับเคสไม่ซ้ำต่อรายการผ่าตัด · 10 อันดับแรก" rows={data.procedures} icon={BarChart3} limit={10} />
     <BreakdownPanel title="จำนวนเคสราย Ward" description="Ward จากข้อมูล HOSxP" rows={data.wards} icon={UsersRound} />
@@ -128,7 +157,7 @@ export function SurgeryStatistics() {
   const value = period === "day" ? day : period === "month" ? month : year;
   const years = Array.from({ length: Math.max(1, Number(bangkokToday().slice(0, 4)) - 2021) }, (_, index) => String(Number(bangkokToday().slice(0, 4)) - index));
   const query = useQuery({
-    queryKey: ["surgery-statistics", period, value],
+    queryKey: ["surgery-statistics-v2", period, value],
     queryFn: async ({ signal }) => {
       const params = new URLSearchParams({ period, value });
       const response = await fetch(`/api/reports/statistics?${params}`, { cache: "no-store", signal });
@@ -153,8 +182,8 @@ export function SurgeryStatistics() {
       {!query.data.hosxpAvailable && <div role="status" className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-4 text-xs leading-5 text-amber-900 dark:text-amber-200"><AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" /><p className="m-0">กำลังแสดงจำนวนทะเบียนและทีมแพทย์จาก OR-Reg แต่รายละเอียด Elective/Emergency, Operation, Ward, สถานะ และระยะเวลาจาก HOSxP ยังโหลดไม่ได้</p></div>}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]"><ReportChart data={query.data.series} period={period} /><DoctorsChart doctors={query.data.doctors} /></div>
       <OperationsInsights data={query.data} />
-      <UtilizationPanel data={query.data.utilization} hosxpAvailable={query.data.hosxpAvailable} missingRoomTimes={query.data.missingRoomTimes} />
-      <p className="m-0 px-1 text-[11px] leading-5 text-muted-foreground">จำนวนเคสหลักนับจากทะเบียนที่ซิงก์ใน OR-Reg · รายละเอียด Elective/Emergency, Operation, Ward, สถานะ และระยะเวลาอ่านจาก HOSxP แบบ read-only · Utilization ใช้เวลาเข้า–ออกห้องที่บันทึกใน OR-Reg หารด้วยเวลาพร้อมใช้ 24 ชั่วโมงต่อห้องต่อวัน และรวมช่วงทับซ้อนเพียงครั้งเดียว</p>
+      <UtilizationPanel data={query.data.utilization} hosxpAvailable={query.data.hosxpAvailable} missingRoomTimes={query.data.missingRoomTimes} roomTimeCases={query.data.roomTimeCases} estimatedRoomCases={query.data.estimatedRoomCases} missingUtilizationTimes={query.data.missingUtilizationTimes} />
+      <p className="m-0 px-1 text-[11px] leading-5 text-muted-foreground">จำนวนเคสนับจากทะเบียน OR-Reg · รายละเอียด Elective/Emergency, Operation, Ward, สถานะ และเวลาผ่าตัดอ่านจาก HOSxP แบบ read-only · Utilization ใช้เวลาเข้า–ออกห้องที่บันทึกไว้ก่อน หากไม่มีใช้เวลาเริ่ม–เสร็จผ่าตัดเป็นค่าประมาณ เทียบกับ 24 ชั่วโมงต่อห้อง/วัน และรวมช่วงเวลาซ้อนเพียงครั้งเดียว</p>
     </div> : null}
   </section>;
 }

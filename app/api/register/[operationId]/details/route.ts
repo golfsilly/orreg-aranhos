@@ -5,7 +5,6 @@ import { parseRegisterDetails } from "@/lib/register/details";
 import { z } from "zod";
 import { writeAudit } from "@/lib/audit/write";
 import { recordDenied } from "@/lib/audit/denied";
-import { getHosxpOperationItems } from "@/lib/hosxp/operations";
 
 const headers = { "Cache-Control": "private, no-store" };
 type Context = { params: Promise<{ operationId: string }> };
@@ -23,8 +22,7 @@ export async function GET(_request: Request, { params }: Context) {
   const register = await prisma.surgeryRegister.findUnique({ where: { hosxpOperationId: id }, select });
   if (register) await writeAudit(prisma, { actorId: user.id, event: "REGISTER_DETAILS_READ", outcome: "SUCCESS", targetType: "REGISTER", targetId: register.id });
   if (!register) return Response.json({ error: "Not found" }, { status: 404, headers });
-  const operations = await getHosxpOperationItems(Number(id));
-  return Response.json({ ...register, diagnosis: register.diagnosis ?? "", remark: register.remark ?? "", operations }, { headers });
+  return Response.json({ ...register, diagnosis: register.diagnosis ?? "", remark: register.remark ?? "" }, { headers });
 }
 
 export async function PATCH(request: Request, { params }: Context) {

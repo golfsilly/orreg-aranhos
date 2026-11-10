@@ -29,15 +29,37 @@ export type DailyRegisterRow = {
   team: string | null;
 };
 
+export type SingleRegisterReadStage = "HOSXP_SOURCE" | "APP_REGISTER" | "HOSXP_TEAM";
+export class SingleRegisterReadError extends Error {
+  constructor(readonly stage: SingleRegisterReadStage) {
+    super("Could not load single register data");
+    this.name = "SingleRegisterReadError";
+  }
+}
+
 const localDateTime = (value: Date | null | undefined) => value ? new Date(value.getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 19).replace("T", " ") : null;
 
 /** Reads the authorized daily source plus OR-Reg overrides; never writes to HOSxP. */
-async function registerRowsForSource(source: Record<string, unknown>[], fallbackDay: string): Promise<DailyRegisterRow[]> {
+async function registerRowsForSource(
+  source: Record<string, unknown>[],
+  fallbackDay: string,
+  onSingleReadStage?: (stage: Exclude<SingleRegisterReadStage, "HOSXP_SOURCE">) => void,
+): Promise<DailyRegisterRow[]> {
   const ids = [...new Set(source.map((row) => normalizeOperationId(row.operation_id)))];
-  const [registers, teamRows] = await Promise.all([ids.length ? prisma.surgeryRegister.findMany({
+  const findRegisters = () => ids.length ? prisma.surgeryRegister.findMany({
     where: { hosxpOperationId: { in: ids } },
     select: { hosxpOperationId: true, sequence: true, calendarMonth: true, fiscalYear: true, departmentId: true, operationDate: true, operationStartedAt: true, operationEndedAt: true, patho: true, preOp: true, postOp: true, anesthesia: true, surgeryClass: true, minorPeriod: true, diagnosis: true, remark: true, staff: { select: { personnelGroup: true, staffName: true, positionName: true, operationItemName: true } } },
-  }) : [], getHosxpOperationTeams(ids.map(Number))]);
+  }) : Promise.resolve([]);
+  let registers;
+  let teamRows;
+  if (onSingleReadStage) {
+    onSingleReadStage("APP_REGISTER");
+    registers = await findRegisters();
+    onSingleReadStage("HOSXP_TEAM");
+    teamRows = await getHosxpOperationTeams(ids.map(Number));
+  } else {
+    [registers, teamRows] = await Promise.all([findRegisters(), getHosxpOperationTeams(ids.map(Number))]);
+  }
   const byId = new Map(registers.map((item) => [item.hosxpOperationId, item]));
   const groupNames: Record<number, string> = { 1: "ผู้ทำการผ่าตัด", 2: "Scrub Nurse", 3: "Instrument Nurse", 4: "Circulate Nurse", 5: "ทีมช่วยผ่าตัด" };
   const teamByOperationId = new Map<string, string[]>();
@@ -92,6 +114,32 @@ async function registerRowsForSource(source: Record<string, unknown>[], fallback
 /** Reads the authorized daily source plus OR-Reg overrides; never writes to HOSxP. */
 export async function getDailyRegisterRows(day: string): Promise<DailyRegisterRow[]> {
   return registerRowsForSource(await getHosxpOperationsForDay(day), day);
+}
+
+/** Reads one authorized source operation for its individual PDF export. */
+export async function getSingleDailyRegisterRow(
+  day: string,
+  operationId: string,
+  onReadStage?: (stage: SingleRegisterReadStage) => void,
+): Promise<DailyRegisterRow | null> {
+  const id = normalizeOperationId(operationId);
+  let source: Record<string, unknown>[];
+  try {
+    onReadStage?.("HOSXP_SOURCE");
+    source = (await getHosxpOperationsForDay(day)).filter((row) => normalizeOperationId(row.operation_id) === id);
+  } catch {
+    throw new SingleRegisterReadError("HOSXP_SOURCE");
+  }
+  if (!source.length) return null;
+  let readStage: Exclude<SingleRegisterReadStage, "HOSXP_SOURCE"> = "APP_REGISTER";
+  try {
+    return (await registerRowsForSource(source.slice(0, 1), day, (stage) => {
+      readStage = stage;
+      onReadStage?.(stage);
+    }))[0] ?? null;
+  } catch {
+    throw new SingleRegisterReadError(readStage);
+  }
 }
 
 /** Reads the authorized monthly source plus OR-Reg overrides; never writes to HOSxP. */
