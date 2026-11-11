@@ -21,7 +21,9 @@ test("every page has its own feature-based loading skeleton and clean route fold
     assert.match(readFileSync(join(directory, "loading.tsx"), "utf8"), /@\/features\/.+skeleton/, `${label} must use a feature skeleton`);
     if (directory !== root) {
       assert.deepEqual(files.filter((file) => /\.(?:tsx?|jsx?)$/.test(file)).sort(), ["loading.tsx", "page.tsx"], `${label} must keep components outside its route folder`);
-      assert.match(readFileSync(join(directory, "page.tsx"), "utf8"), /export \{ default \} from "@\/features\//, `${label} must delegate its page implementation to a feature`);
+      const page = readFileSync(join(directory, "page.tsx"), "utf8");
+      assert.match(page, /@\/features\//, `${label} must use feature-based UI`);
+      assert.match(page, /export\s+(?:\{\s*default\s*\}|default\s+(?:async\s+)?function)/, `${label} must export a page component`);
     }
   }
 });

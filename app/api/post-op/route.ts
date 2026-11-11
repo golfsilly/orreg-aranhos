@@ -124,6 +124,8 @@ export async function POST(request: Request) {
     let actionType: "CREATE" | "UPDATE" | "RECORD" | "RESOLVE" = "RECORD";
     if (data.type === "pacu") {
       const { type: _type, registerId: _registerId, ...fields } = data;
+      void _type;
+      void _registerId;
       await tx.postoperativeRecord.update({ where: { id: record.id }, data: { ...fields, dischargeAssessedAt: new Date(), dischargeAssessedById: user.id, updatedById: user.id } });
       event = "POSTOP_RECORD_UPDATED"; actionType = "UPDATE";
     } else if (data.type === "observation") { await tx.postoperativeObservation.create({ data: { ...data.observation, recordId: record.id, recordedById: user.id } }); event = "POSTOP_OBSERVATION_RECORDED"; }
@@ -135,6 +137,9 @@ export async function POST(request: Request) {
     } else if (data.type === "transfer") { await tx.postoperativeTransfer.create({ data: { recordId: record.id, transferredAt: data.transferredAt, fromLocation: data.fromLocation, toLocation: data.toLocation, transportedBy: data.transportedBy, receivedBy: data.receivedBy, handoffNote: data.handoffNote, sbarSituation: data.sbarSituation, sbarBackground: data.sbarBackground, sbarAssessment: data.sbarAssessment, sbarRecommendation: data.sbarRecommendation, recordedById: user.id } }); event = "POSTOP_TRANSFER_RECORDED"; }
     else {
       const { type: _type, registerId: _registerId, taskId: _taskId, ...fields } = data;
+      void _type;
+      void _registerId;
+      void _taskId;
       await tx.postoperativeSsiFollowup.create({ data: { ...fields, recordId: record.id, taskId: validatedTaskId, recordedById: user.id } });
       if (validatedTaskId) { await tx.postoperativeFollowupTask.update({ where: { id: validatedTaskId }, data: { status: "COMPLETED", completedAt: new Date(), completedById: user.id } }); event = "POSTOP_FOLLOWUP_TASK_COMPLETED"; }
       else event = "POSTOP_SSI_FOLLOWUP_RECORDED";

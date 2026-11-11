@@ -1,6 +1,7 @@
 import { WorkspaceShell } from "@/features/workspace/components/workspace-shell";
 import { WorkspaceShellSkeleton } from "@/features/workspace/components/workspace-shell-skeleton";
 import { getAuthorizedUser } from "@/lib/authorization";
+import { env } from "@/lib/env";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -14,7 +15,14 @@ async function AuthenticatedWorkspace({
   const user = await getAuthorizedUser("dashboard:read");
   if (!user) redirect("/signin");
   return (
-    <WorkspaceShell user={{ name: user.name, role: user.role }}>
+      <WorkspaceShell
+        user={{ name: user.name, role: user.role }}
+        enabledModules={[
+          "surgery",
+          ...(env.ORREG_POSTOP_ENABLED ? ["postoperative"] : []),
+          ...(env.ORREG_EQUIPMENT_ENABLED ? ["equipment"] : []),
+        ]}
+      >
       {children}
     </WorkspaceShell>
   );

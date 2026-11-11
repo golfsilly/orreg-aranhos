@@ -37,6 +37,8 @@ export function OperationsRegisterDisplay({
     try {
       const saved = JSON.parse(localStorage.getItem(columnOrderStorageKey) ?? "[]");
       const savedIds = Array.isArray(saved) ? saved.filter((id): id is string => typeof id === "string" && currentIds.includes(id)) : [];
+      // Restore the persisted order after hydration; the server render uses the default order.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setColumnOrder([...new Set([...savedIds, ...currentIds])]);
     } catch {
       setColumnOrder(currentIds);

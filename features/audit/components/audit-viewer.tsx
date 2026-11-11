@@ -1,24 +1,208 @@
 "use client";
 
-import { createColumnHelper, tableFeatures, useTable } from "@tanstack/react-table";
-import Link from "next/link";
 import { ResponsiveScroll } from "@/components/ui/responsive-scroll";
+import {
+  createColumnHelper,
+  tableFeatures,
+  useTable,
+} from "@tanstack/react-table";
+import Link from "next/link";
 
-type Row = { id: string; occurredAt: string; actorId: string | null; actorName: string; event: string; outcome: "SUCCESS" | "FAILURE" | "DENIED"; targetType: string | null; targetId: string | null; details: string };
+type Row = {
+  id: string;
+  occurredAt: string;
+  actorId: string | null;
+  actorName: string;
+  event: string;
+  outcome: "SUCCESS" | "FAILURE" | "DENIED";
+  targetType: string | null;
+  targetId: string | null;
+  details: string;
+};
 const features = tableFeatures({});
 const column = createColumnHelper<typeof features, Row>();
-const columns = column.columns([column.accessor("occurredAt", { header: "วันและเวลา" }), column.accessor("actorName", { header: "ผู้ดำเนินการ" }), column.accessor("event", { header: "เหตุการณ์" }), column.accessor("outcome", { header: "ผล" }), column.accessor("targetId", { header: "รายการอ้างอิง" }), column.accessor("details", { header: "รายละเอียด" })]);
+const columns = column.columns([
+  column.accessor("occurredAt", { header: "วันและเวลา" }),
+  column.accessor("actorName", { header: "ผู้ดำเนินการ" }),
+  column.accessor("event", { header: "เหตุการณ์" }),
+  column.accessor("outcome", { header: "ผล" }),
+  column.accessor("targetId", { header: "รายการอ้างอิง" }),
+  column.accessor("details", { header: "รายละเอียด" }),
+]);
 const labels: Record<string, string> = {
-  USER_DELETED: "ลบบัญชีผู้ใช้", USER_RESTORED: "กู้คืนบัญชีผู้ใช้", PROFILE_UPDATED: "แก้ไขข้อมูลโปรไฟล์", REGISTER_SINGLE_PDF_EXPORTED: "พิมพ์ทะเบียนผ่าตัดรายกรณี PDF", REGISTER_DAILY_PDF_EXPORTED: "ส่งออกทะเบียนผ่าตัด PDF รายวัน", REGISTER_DAILY_EXCEL_EXPORTED: "ส่งออกทะเบียนผ่าตัด Excel รายวัน", REGISTER_MONTHLY_PDF_EXPORTED: "ส่งออกทะเบียนผ่าตัด PDF รายเดือน", REGISTER_MONTHLY_EXCEL_EXPORTED: "ส่งออกทะเบียนผ่าตัด Excel รายเดือน", REPORT_STATISTICS_READ: "ดูรายงานและสถิติ",
-  AUTH_SESSION_CREATED: "เริ่มเซสชัน", AUTH_LOGIN_FAILED: "เข้าสู่ระบบไม่สำเร็จ", AUTH_LOGOUT: "ออกจากระบบ", AUTH_PASSWORD_RESET_REQUESTED: "ขอตั้งรหัสผ่านใหม่", AUTH_PASSWORD_RESET: "ตั้งรหัสผ่านใหม่", AUTH_PASSWORD_CHANGE: "เปลี่ยนรหัสผ่าน", AUTH_PROFILE_CHANGE: "แก้ไขข้อมูลบัญชี", AUTH_PROVIDER_LINKED: "ผูก Provider ID", AUTH_SECURITY_ACTION: "จัดการความปลอดภัยบัญชี",
-  USER_BOOTSTRAPPED: "สร้าง superadmin เริ่มต้น", USERS_READ: "ดูรายชื่อบัญชี", USER_CREATED: "สร้างบัญชีผู้ใช้", USER_UPDATED: "แก้ไขบัญชีผู้ใช้", REGISTER_CREATED: "สร้างทะเบียนผ่าตัด", REGISTER_DATE_CHANGED: "เปลี่ยนวันที่หรือเลขทะเบียน", REGISTER_TIMES_UPDATED: "แก้ไขเวลาผ่าตัด", REGISTER_DETAILS_UPDATED: "แก้ไขข้อมูลผ่าตัด", HOSXP_SYNC: "ซิงก์ HOSxP", HOSXP_OPERATIONS_READ: "ดูรายการผ่าตัด", HOSXP_TEAM_READ: "ดูทีมผ่าตัด", REGISTER_TIMES_READ: "ดูเวลาผ่าตัด", REGISTER_DETAILS_READ: "ดูข้อมูลผ่าตัด", REGISTER_HISTORY_READ: "ดูประวัติทะเบียน", AUDIT_LOG_READ: "ดูประวัติการใช้งาน", REPORT_PDF_EXPORTED: "ดาวน์โหลดรายงาน PDF", PROFILE_ASSET_UPDATED: "เปลี่ยนรูปโปรไฟล์หรือลายเซ็น", PROFILE_SIGNATURE_READ: "ดูลายเซ็นของตนเอง",
+  USER_DELETED: "ลบบัญชีผู้ใช้",
+  USER_RESTORED: "กู้คืนบัญชีผู้ใช้",
+  PROFILE_UPDATED: "แก้ไขข้อมูลโปรไฟล์",
+  REGISTER_SINGLE_PDF_EXPORTED: "พิมพ์ทะเบียนผ่าตัดรายกรณี PDF",
+  REGISTER_DAILY_PDF_EXPORTED: "ส่งออกทะเบียนผ่าตัด PDF รายวัน",
+  REGISTER_DAILY_EXCEL_EXPORTED: "ส่งออกทะเบียนผ่าตัด Excel รายวัน",
+  REGISTER_MONTHLY_PDF_EXPORTED: "ส่งออกทะเบียนผ่าตัด PDF รายเดือน",
+  REGISTER_MONTHLY_EXCEL_EXPORTED: "ส่งออกทะเบียนผ่าตัด Excel รายเดือน",
+  REPORT_STATISTICS_READ: "ดูรายงานและสถิติ",
+  AUTH_SESSION_CREATED: "เริ่มเซสชัน",
+  AUTH_LOGIN_FAILED: "เข้าสู่ระบบไม่สำเร็จ",
+  AUTH_LOGOUT: "ออกจากระบบ",
+  AUTH_PASSWORD_RESET_REQUESTED: "ขอตั้งรหัสผ่านใหม่",
+  AUTH_PASSWORD_RESET: "ตั้งรหัสผ่านใหม่",
+  AUTH_PASSWORD_CHANGE: "เปลี่ยนรหัสผ่าน",
+  AUTH_PROFILE_CHANGE: "แก้ไขข้อมูลบัญชี",
+  AUTH_PROVIDER_LINKED: "ผูก Provider ID",
+  AUTH_SECURITY_ACTION: "จัดการความปลอดภัยบัญชี",
+  USER_BOOTSTRAPPED: "สร้าง superadmin เริ่มต้น",
+  USERS_READ: "ดูรายชื่อบัญชี",
+  USER_CREATED: "สร้างบัญชีผู้ใช้",
+  USER_UPDATED: "แก้ไขบัญชีผู้ใช้",
+  REGISTER_CREATED: "สร้างทะเบียนผ่าตัด",
+  REGISTER_DATE_CHANGED: "เปลี่ยนวันที่หรือเลขทะเบียน",
+  REGISTER_TIMES_UPDATED: "แก้ไขเวลาผ่าตัด",
+  REGISTER_DETAILS_UPDATED: "แก้ไขข้อมูลผ่าตัด",
+  HOSXP_SYNC: "ซิงก์ HOSxP",
+  HOSXP_OPERATIONS_READ: "ดูรายการผ่าตัด",
+  HOSXP_TEAM_READ: "ดูทีมผ่าตัด",
+  REGISTER_TIMES_READ: "ดูเวลาผ่าตัด",
+  REGISTER_DETAILS_READ: "ดูข้อมูลผ่าตัด",
+  REGISTER_HISTORY_READ: "ดูประวัติทะเบียน",
+  AUDIT_LOG_READ: "ดูประวัติการใช้งาน",
+  REPORT_PDF_EXPORTED: "ดาวน์โหลดรายงาน PDF",
+  PROFILE_ASSET_UPDATED: "เปลี่ยนรูปโปรไฟล์หรือลายเซ็น",
+  PROFILE_SIGNATURE_READ: "ดูลายเซ็นของตนเอง",
 };
-const resultLabels = { SUCCESS: "สำเร็จ", FAILURE: "ไม่สำเร็จ", DENIED: "ปฏิเสธ" } as const;
-Object.assign(labels, { POSTOP_READ: "ดูข้อมูลติดตามหลังผ่าตัด", POSTOP_RECORD_UPDATED: "บันทึกข้อมูล PACU", POSTOP_OBSERVATION_RECORDED: "บันทึกการประเมิน PACU", POSTOP_COMPLICATION_RECORDED: "บันทึกภาวะแทรกซ้อน", POSTOP_TRANSFER_RECORDED: "บันทึกการส่งต่อ", POSTOP_SSI_FOLLOWUP_RECORDED: "บันทึกติดตาม SSI", EQUIPMENT_READ: "ดูทะเบียนเครื่องมือและอุปกรณ์", INSTRUMENT_CATALOG_CREATED: "เพิ่มเครื่องมือผ่าตัด", INSTRUMENT_SET_CREATED: "สร้าง Set เครื่องมือ", INSTRUMENT_SET_USE_RECORDED: "บันทึกการจ่ายหรือคืน Set", INSTRUMENT_COUNT_RECORDED: "บันทึกการนับเครื่องมือ", IMPLANT_CATALOG_CREATED: "เพิ่ม Implant", IMPLANT_USAGE_RECORDED: "บันทึกการใช้ Implant" });
-Object.assign(labels, { POSTOP_LEAD_ASSIGNED: "แต่งตั้ง Nurse lead", POSTOP_SETTINGS_UPDATED: "ตั้งค่าเกณฑ์ PACU", POSTOP_SSI_TEMPLATE_UPDATED: "ตั้งค่ารอบติดตาม SSI", POSTOP_FOLLOWUP_TASKS_GENERATED: "จัดรอบงาน SSI", POSTOP_FOLLOWUP_TASK_COMPLETED: "ปิดงานติดตาม SSI" });
-const formatter = new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", dateStyle: "medium", timeStyle: "medium" });
+const resultLabels = {
+  SUCCESS: "สำเร็จ",
+  FAILURE: "ไม่สำเร็จ",
+  DENIED: "ปฏิเสธ",
+} as const;
+Object.assign(labels, {
+  HOSXP_SET_OR_NOTIFICATION_READ: "อ่านข้อมูลเพื่อแจ้ง Set OR",
+  HOSXP_SET_OR_NOTIFICATION_SENT: "ส่งแจ้งเตือน Set OR",
+  POSTOP_READ: "ดูข้อมูลติดตามหลังผ่าตัด",
+  POSTOP_RECORD_UPDATED: "บันทึกข้อมูล PACU",
+  POSTOP_OBSERVATION_RECORDED: "บันทึกการประเมิน PACU",
+  POSTOP_COMPLICATION_RECORDED: "บันทึกภาวะแทรกซ้อน",
+  POSTOP_TRANSFER_RECORDED: "บันทึกการส่งต่อ",
+  POSTOP_SSI_FOLLOWUP_RECORDED: "บันทึกติดตาม SSI",
+  EQUIPMENT_READ: "ดูทะเบียนเครื่องมือและอุปกรณ์",
+  INSTRUMENT_CATALOG_CREATED: "เพิ่มเครื่องมือผ่าตัด",
+  INSTRUMENT_SET_CREATED: "สร้าง Set เครื่องมือ",
+  INSTRUMENT_SET_USE_RECORDED: "บันทึกการจ่ายหรือคืน Set",
+  INSTRUMENT_COUNT_RECORDED: "บันทึกการนับเครื่องมือ",
+  IMPLANT_CATALOG_CREATED: "เพิ่ม Implant",
+  IMPLANT_USAGE_RECORDED: "บันทึกการใช้ Implant",
+});
+Object.assign(labels, {
+  POSTOP_LEAD_ASSIGNED: "แต่งตั้ง Nurse lead",
+  POSTOP_SETTINGS_UPDATED: "ตั้งค่าเกณฑ์ PACU",
+  POSTOP_SSI_TEMPLATE_UPDATED: "ตั้งค่ารอบติดตาม SSI",
+  POSTOP_FOLLOWUP_TASKS_GENERATED: "จัดรอบงาน SSI",
+  POSTOP_FOLLOWUP_TASK_COMPLETED: "ปิดงานติดตาม SSI",
+});
+const formatter = new Intl.DateTimeFormat("th-TH", {
+  timeZone: "Asia/Bangkok",
+  dateStyle: "medium",
+  timeStyle: "medium",
+});
 
-export function AuditViewer({ rows, next }: { rows: Row[]; next: string | null }) {
+export function AuditViewer({
+  rows,
+  next,
+}: {
+  rows: Row[];
+  next: string | null;
+}) {
   const table = useTable({ features, columns, data: rows });
-  return <div><div className="mb-7"><p className="mb-3 text-[10px] font-bold tracking-[0.18em] text-primary">AUDIT TRAIL</p><h1 className="text-[28px] font-semibold tracking-[-0.035em] sm:text-[34px]">ประวัติการใช้งาน</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">บันทึกการเข้าใช้งาน การดูข้อมูล และการเปลี่ยนแปลงในระบบ</p></div><section className="rounded-[20px] border border-border bg-card p-5 sm:p-7"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-base font-semibold">เหตุการณ์ล่าสุด</h2><span className="text-xs text-muted-foreground">แสดงครั้งละไม่เกิน 100 รายการ · เวลาไทย</span></div>{rows.length === 0 ? <p className="mt-6 text-sm text-muted-foreground">ยังไม่มีประวัติการใช้งาน</p> : <div className="mt-5"><p className="mb-2 text-xs text-muted-foreground md:hidden">เลื่อนตารางไปด้านข้างเพื่อดูรายละเอียดทั้งหมด</p><ResponsiveScroll label="ตารางประวัติการใช้งาน เลื่อนด้านข้างได้"><table className="w-full min-w-[960px] border-collapse text-left text-sm"><thead><tr>{["วันและเวลา", "ผู้ดำเนินการ", "เหตุการณ์", "ผล", "รายการอ้างอิง", "รายละเอียด"].map((name) => <th key={name} className="border-b border-border px-2.5 py-3.5 text-xs font-semibold text-muted-foreground">{name}</th>)}</tr></thead><tbody>{table.getRowModel().rows.map(({ original: row }) => <tr key={row.id}><td className="whitespace-nowrap border-b border-border px-2.5 py-3.5 text-xs text-muted-foreground">{formatter.format(new Date(row.occurredAt))}</td><td className="border-b border-border px-2.5 py-3.5">{row.actorName}</td><td className="border-b border-border px-2.5 py-3.5">{labels[row.event] ?? row.event}</td><td className="border-b border-border px-2.5 py-3.5"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${row.outcome === "SUCCESS" ? "bg-secondary text-secondary-foreground" : "bg-destructive/10 text-destructive"}`}>{resultLabels[row.outcome]}</span></td><td className="max-w-[200px] break-all border-b border-border px-2.5 py-3.5 text-xs text-muted-foreground">{row.targetType && row.targetId ? `${row.targetType}: ${row.targetId}` : "—"}</td><td className="max-w-[260px] border-b border-border px-2.5 py-3.5 text-xs leading-5 text-muted-foreground">{row.details || "—"}</td></tr>)}</tbody></table></ResponsiveScroll></div>}{next && <Link href={next} className="mt-6 inline-flex rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-primary hover:bg-accent">เหตุการณ์ก่อนหน้า →</Link>}</section></div>;
+  return (
+    <div>
+      <div className="mb-7">
+        <p className="mb-3 text-[10px] font-bold tracking-[0.18em] text-primary">
+          AUDIT TRAIL
+        </p>
+        <h1 className="text-[28px] font-semibold tracking-[-0.035em] sm:text-[34px]">
+          ประวัติการใช้งาน
+        </h1>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          บันทึกการเข้าใช้งาน การดูข้อมูล และการเปลี่ยนแปลงในระบบ
+        </p>
+      </div>
+      <section className="rounded-[20px] border border-border bg-card p-5 sm:p-7">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-base font-semibold">เหตุการณ์ล่าสุด</h2>
+          <span className="text-xs text-muted-foreground">
+            แสดงครั้งละไม่เกิน 100 รายการ · เวลาไทย
+          </span>
+        </div>
+        {rows.length === 0 ? (
+          <p className="mt-6 text-sm text-muted-foreground">
+            ยังไม่มีประวัติการใช้งาน
+          </p>
+        ) : (
+          <div className="mt-5">
+            <p className="mb-2 text-xs text-muted-foreground md:hidden">
+              เลื่อนตารางไปด้านข้างเพื่อดูรายละเอียดทั้งหมด
+            </p>
+            <ResponsiveScroll label="ตารางประวัติการใช้งาน เลื่อนด้านข้างได้">
+              <table className="w-full min-w-[960px] border-collapse text-left text-sm">
+                <thead>
+                  <tr>
+                    {[
+                      "วันและเวลา",
+                      "ผู้ดำเนินการ",
+                      "เหตุการณ์",
+                      "ผล",
+                      "รายการอ้างอิง",
+                      "รายละเอียด",
+                    ].map((name) => (
+                      <th
+                        key={name}
+                        className="border-b border-border px-2.5 py-3.5 text-xs font-semibold text-muted-foreground"
+                      >
+                        {name}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {table.getRowModel().rows.map(({ original: row }) => (
+                    <tr key={row.id}>
+                      <td className="whitespace-nowrap border-b border-border px-2.5 py-3.5 text-xs text-muted-foreground">
+                        {formatter.format(new Date(row.occurredAt))}
+                      </td>
+                      <td className="border-b border-border px-2.5 py-3.5">
+                        {row.actorName}
+                      </td>
+                      <td className="border-b border-border px-2.5 py-3.5">
+                        {labels[row.event] ?? row.event}
+                      </td>
+                      <td className="border-b border-border px-2.5 py-3.5">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${row.outcome === "SUCCESS" ? "bg-secondary text-secondary-foreground" : "bg-destructive/10 text-destructive"}`}
+                        >
+                          {resultLabels[row.outcome]}
+                        </span>
+                      </td>
+                      <td className="max-w-[200px] break-all border-b border-border px-2.5 py-3.5 text-xs text-muted-foreground">
+                        {row.targetType && row.targetId
+                          ? `${row.targetType}: ${row.targetId}`
+                          : "—"}
+                      </td>
+                      <td className="max-w-[260px] border-b border-border px-2.5 py-3.5 text-xs leading-5 text-muted-foreground">
+                        {row.details || "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </ResponsiveScroll>
+          </div>
+        )}
+        {next && (
+          <Link
+            href={next}
+            className="mt-6 inline-flex rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-primary hover:bg-accent"
+          >
+            เหตุการณ์ก่อนหน้า →
+          </Link>
+        )}
+      </section>
+    </div>
+  );
 }

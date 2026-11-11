@@ -58,17 +58,20 @@ function SidebarLink({
 
 export function WorkspaceSidebar({
   user,
+  enabledModules,
   close,
   collapsed = false,
   onToggleCollapsed,
 }: {
   user: WorkspaceUser;
+  enabledModules: readonly string[];
   close?: () => void;
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
 }) {
   const pathname = usePathname();
   const modules = workspaceModules
+    .filter((module) => enabledModules.includes(module.id))
     .map((module) => ({
       ...module,
       items: module.items.filter((item) =>

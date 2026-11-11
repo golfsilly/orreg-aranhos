@@ -23,11 +23,14 @@ export function useRegisterColumnVisibility() {
         }
       }
       defaults.actions = true;
+      // Restore the persisted visibility after hydration; the server render uses defaults.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setColumnVisibility(defaults);
     } catch {
       defaults.actions = true;
       setColumnVisibility(defaults);
     }
+    // This flag gates persistence until the browser preference has been restored.
     setLoaded(true);
   }, []);
 

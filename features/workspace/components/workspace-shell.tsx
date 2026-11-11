@@ -8,9 +8,11 @@ import { WorkspaceSidebar } from "./workspace-sidebar";
 
 export function WorkspaceShell({
   user,
+  enabledModules,
   children,
 }: {
   user: { name: string; role: UserRole };
+  enabledModules: readonly string[];
   children: React.ReactNode;
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -30,6 +32,7 @@ export function WorkspaceShell({
       >
         <WorkspaceSidebar
           user={user}
+          enabledModules={enabledModules}
           collapsed={!sidebarExpanded}
           onToggleCollapsed={() => {
             setSidebarHovered(false);
@@ -38,7 +41,7 @@ export function WorkspaceShell({
         />
       </aside>
       <div className="flex min-h-screen min-w-0 flex-col">
-        <WorkspaceHeader user={user} />
+        <WorkspaceHeader user={user} enabledModules={enabledModules} />
         <main
           id="main-content"
           className="mx-auto w-full min-w-0 max-w-[1600px] flex-1 px-4 py-7 sm:px-7 sm:py-9 lg:px-9"

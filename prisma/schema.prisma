@@ -162,36 +162,36 @@ model SurgeryRegisterCounter {
 }
 
 model SurgeryRegister {
-  id                 String                        @id @default(cuid())
-  fiscalYear         Int
-  calendarMonth      Int
-  departmentId       String                        @default("UNSPECIFIED") @db.VarChar(191)
-  sequence           Int
-  operationDate      DateTime                      @db.Date
-  ageOverride        String?                       @db.VarChar(32)
-  roomEnteredAt      DateTime?
-  operationStartedAt DateTime?
-  operationEndedAt   DateTime?
-  roomExitedAt       DateTime?
-  revision           Int                           @default(0)
-  patho              Boolean                       @default(false)
-  preOp              Boolean                       @default(false)
-  postOp             Boolean                       @default(false)
-  remark             String?                       @db.Text
-  diagnosis          String?                       @db.Text
-  anesthesia         AnesthesiaType?
-  urgency            OperationUrgency?
-  surgeryClass       SurgeryClass?
-  minorPeriod        MinorSurgeryPeriod?
-  hosxpOperationId   String?                       @unique
-  createdById        String
-  createdBy          User                          @relation(fields: [createdById], references: [id], onDelete: Restrict)
-  createdAt          DateTime                      @default(now())
-  updatedAt          DateTime                      @updatedAt
-  staff              SurgeryRegisterStaff[]
-  timeChanges        SurgeryRegisterTimeChange[]
-  detailChanges      SurgeryRegisterDetailChange[]
-  numberChanges      SurgeryRegisterNumberChange[]
+  id                  String                        @id @default(cuid())
+  fiscalYear          Int
+  calendarMonth       Int
+  departmentId        String                        @default("UNSPECIFIED") @db.VarChar(191)
+  sequence            Int
+  operationDate       DateTime                      @db.Date
+  ageOverride         String?                       @db.VarChar(32)
+  roomEnteredAt       DateTime?
+  operationStartedAt  DateTime?
+  operationEndedAt    DateTime?
+  roomExitedAt        DateTime?
+  revision            Int                           @default(0)
+  patho               Boolean                       @default(false)
+  preOp               Boolean                       @default(false)
+  postOp              Boolean                       @default(false)
+  remark              String?                       @db.Text
+  diagnosis           String?                       @db.Text
+  anesthesia          AnesthesiaType?
+  urgency             OperationUrgency?
+  surgeryClass        SurgeryClass?
+  minorPeriod         MinorSurgeryPeriod?
+  hosxpOperationId    String?                       @unique
+  createdById         String
+  createdBy           User                          @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt           DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
+  staff               SurgeryRegisterStaff[]
+  timeChanges         SurgeryRegisterTimeChange[]
+  detailChanges       SurgeryRegisterDetailChange[]
+  numberChanges       SurgeryRegisterNumberChange[]
   postoperativeRecord PostoperativeRecord?
   instrumentSetUses   SurgeryInstrumentSetUse[]
   implantsUsed        SurgeryImplantRecord[]
@@ -202,6 +202,14 @@ model SurgeryRegister {
   @@index([createdById])
   @@index([departmentId, operationDate])
   @@index([operationDate, id], map: "SurgeryRegister_operationDate_id_idx")
+}
+
+// Durable HOSxP request cursor prevents duplicate group notifications after reloads.
+model SurgeryNotificationCursor {
+  job         String   @id @db.VarChar(64)
+  requestAt   String   @db.VarChar(19)
+  operationId String   @default("0") @db.VarChar(191)
+  updatedAt   DateTime @updatedAt
 }
 
 model SurgeryRegisterStaff {
@@ -281,29 +289,29 @@ model UserManagementAudit {
 
 // Longitudinal post-operative care stays linked to the immutable OR-Reg case.
 model PostoperativeRecord {
-  id               String                         @id @default(cuid())
-  registerId       String                         @unique
-  register         SurgeryRegister                @relation(fields: [registerId], references: [id], onDelete: Restrict)
-  pacuArrivedAt    DateTime?
-  pacuDischargedAt DateTime?
-  disposition      String?                        @db.VarChar(32)
-  handoffNote      String?                        @db.Text
-  airwayStable     Boolean?
-  vitalSignsStable Boolean?
-  painControlled   Boolean?
-  nauseaControlled Boolean?
+  id                     String                      @id @default(cuid())
+  registerId             String                      @unique
+  register               SurgeryRegister             @relation(fields: [registerId], references: [id], onDelete: Restrict)
+  pacuArrivedAt          DateTime?
+  pacuDischargedAt       DateTime?
+  disposition            String?                     @db.VarChar(32)
+  handoffNote            String?                     @db.Text
+  airwayStable           Boolean?
+  vitalSignsStable       Boolean?
+  painControlled         Boolean?
+  nauseaControlled       Boolean?
   consciousnessRecovered Boolean?
-  handoffComplete  Boolean?
-  dischargeAssessedAt DateTime?
-  dischargeAssessedById String?                   @db.VarChar(191)
-  createdById      String                         @db.VarChar(191)
-  updatedById      String?                        @db.VarChar(191)
-  createdAt        DateTime                       @default(now())
-  updatedAt        DateTime                       @updatedAt
-  observations     PostoperativeObservation[]
-  complications    PostoperativeComplication[]
-  transfers        PostoperativeTransfer[]
-  ssiFollowups     PostoperativeSsiFollowup[]
+  handoffComplete        Boolean?
+  dischargeAssessedAt    DateTime?
+  dischargeAssessedById  String?                     @db.VarChar(191)
+  createdById            String                      @db.VarChar(191)
+  updatedById            String?                     @db.VarChar(191)
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  observations           PostoperativeObservation[]
+  complications          PostoperativeComplication[]
+  transfers              PostoperativeTransfer[]
+  ssiFollowups           PostoperativeSsiFollowup[]
 
   @@index([pacuArrivedAt])
   @@index([disposition, updatedAt])
@@ -353,85 +361,85 @@ model PostoperativeComplication {
 }
 
 model PostoperativeTransfer {
-  id            String              @id @default(cuid())
-  recordId      String
-  record        PostoperativeRecord @relation(fields: [recordId], references: [id], onDelete: Restrict)
-  transferredAt DateTime
-  fromLocation  String?             @db.VarChar(191)
-  toLocation    String              @db.VarChar(191)
-  transportedBy String?             @db.VarChar(191)
-  receivedBy    String?             @db.VarChar(191)
-  handoffNote   String?             @db.Text
-  sbarSituation String?             @db.Text
-  sbarBackground String?            @db.Text
-  sbarAssessment String?            @db.Text
-  sbarRecommendation String?       @db.Text
-  recordedById  String              @db.VarChar(191)
-  createdAt     DateTime            @default(now())
+  id                 String              @id @default(cuid())
+  recordId           String
+  record             PostoperativeRecord @relation(fields: [recordId], references: [id], onDelete: Restrict)
+  transferredAt      DateTime
+  fromLocation       String?             @db.VarChar(191)
+  toLocation         String              @db.VarChar(191)
+  transportedBy      String?             @db.VarChar(191)
+  receivedBy         String?             @db.VarChar(191)
+  handoffNote        String?             @db.Text
+  sbarSituation      String?             @db.Text
+  sbarBackground     String?             @db.Text
+  sbarAssessment     String?             @db.Text
+  sbarRecommendation String?             @db.Text
+  recordedById       String              @db.VarChar(191)
+  createdAt          DateTime            @default(now())
 
   @@index([recordId, transferredAt])
   @@index([toLocation, transferredAt])
 }
 
 model PostoperativeSsiFollowup {
-  id                 String              @id @default(cuid())
+  id                 String                     @id @default(cuid())
   recordId           String
-  record             PostoperativeRecord @relation(fields: [recordId], references: [id], onDelete: Restrict)
+  record             PostoperativeRecord        @relation(fields: [recordId], references: [id], onDelete: Restrict)
   followedUpAt       DateTime
   postoperativeDay   Int?
-  woundStatus        String              @db.VarChar(32)
-  infectionSuspected Boolean             @default(false)
-  infectionConfirmed Boolean             @default(false)
-  ssiDepth           String?             @db.VarChar(32)
-  redness            Boolean             @default(false)
-  warmth             Boolean             @default(false)
-  swelling           Boolean             @default(false)
-  drainage           Boolean             @default(false)
-  woundSeparation    Boolean             @default(false)
-  fever              Boolean             @default(false)
-  increasingPain     Boolean             @default(false)
-  cultureResult      String?             @db.Text
-  treatment          String?             @db.Text
-  outcome            String?             @db.Text
+  woundStatus        String                     @db.VarChar(32)
+  infectionSuspected Boolean                    @default(false)
+  infectionConfirmed Boolean                    @default(false)
+  ssiDepth           String?                    @db.VarChar(32)
+  redness            Boolean                    @default(false)
+  warmth             Boolean                    @default(false)
+  swelling           Boolean                    @default(false)
+  drainage           Boolean                    @default(false)
+  woundSeparation    Boolean                    @default(false)
+  fever              Boolean                    @default(false)
+  increasingPain     Boolean                    @default(false)
+  cultureResult      String?                    @db.Text
+  treatment          String?                    @db.Text
+  outcome            String?                    @db.Text
   nextFollowupAt     DateTime?
   task               PostoperativeFollowupTask? @relation(fields: [taskId], references: [id], onDelete: SetNull)
-  taskId             String?             @unique
-  recordedById       String              @db.VarChar(191)
-  createdAt          DateTime            @default(now())
+  taskId             String?                    @unique
+  recordedById       String                     @db.VarChar(191)
+  createdAt          DateTime                   @default(now())
 
   @@index([recordId, followedUpAt])
   @@index([infectionSuspected, followedUpAt])
 }
 
 model PostoperativeVitalThreshold {
-  id                String   @id @db.VarChar(32)
-  systolicMin       Int?
-  systolicMax       Int?
-  diastolicMin      Int?
-  diastolicMax      Int?
-  heartRateMin      Int?
-  heartRateMax      Int?
-  respiratoryMin    Int?
-  respiratoryMax    Int?
+  id                  String   @id @db.VarChar(32)
+  systolicMin         Int?
+  systolicMax         Int?
+  diastolicMin        Int?
+  diastolicMax        Int?
+  heartRateMin        Int?
+  heartRateMax        Int?
+  respiratoryMin      Int?
+  respiratoryMax      Int?
   oxygenSaturationMin Int?
-  temperatureMin    Float?
-  temperatureMax    Float?
-  painScoreMax      Int?
-  aldreteScoreMin   Int?
-  updatedById       String?  @db.VarChar(191)
-  updatedAt         DateTime @updatedAt
+  temperatureMin      Float?
+  temperatureMax      Float?
+  painScoreMax        Int?
+  aldreteScoreMin     Int?
+  updatedById         String?  @db.VarChar(191)
+  updatedAt           DateTime @updatedAt
 }
 
 model PostoperativeSsiTemplate {
-  id          String                           @id @default(cuid())
-  name        String                           @db.VarChar(191)
-  scopeType   String                           @db.VarChar(32)
-  scopeKey    String                           @default("ALL") @db.VarChar(191)
-  isActive    Boolean                          @default(true)
-  createdById String                           @db.VarChar(191)
-  updatedById String?                          @db.VarChar(191)
-  createdAt   DateTime                         @default(now())
-  updatedAt   DateTime                         @updatedAt
+  id          String                          @id @default(cuid())
+  name        String                          @db.VarChar(191)
+  scopeType   String                          @db.VarChar(32)
+  scopeKey    String                          @default("ALL") @db.VarChar(191)
+  isActive    Boolean                         @default(true)
+  createdById String                          @db.VarChar(191)
+  updatedById String?                         @db.VarChar(191)
+  createdAt   DateTime                        @default(now())
+  updatedAt   DateTime                        @updatedAt
   rounds      PostoperativeSsiTemplateRound[]
   tasks       PostoperativeFollowupTask[]
 
@@ -440,14 +448,14 @@ model PostoperativeSsiTemplate {
 }
 
 model PostoperativeSsiTemplateRound {
-  id          String                 @id @default(cuid())
+  id          String                      @id @default(cuid())
   templateId  String
-  template    PostoperativeSsiTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template    PostoperativeSsiTemplate    @relation(fields: [templateId], references: [id], onDelete: Cascade)
   roundNumber Int
   dayOffset   Int
-  label       String                 @db.VarChar(191)
-  isActive    Boolean                @default(true)
-  createdAt   DateTime               @default(now())
+  label       String                      @db.VarChar(191)
+  isActive    Boolean                     @default(true)
+  createdAt   DateTime                    @default(now())
   tasks       PostoperativeFollowupTask[]
 
   @@unique([templateId, roundNumber])
@@ -455,24 +463,24 @@ model PostoperativeSsiTemplateRound {
 }
 
 model PostoperativeFollowupTask {
-  id                  String                      @id @default(cuid())
-  registerId          String
-  register            SurgeryRegister             @relation(fields: [registerId], references: [id], onDelete: Restrict)
-  templateId          String
-  template            PostoperativeSsiTemplate    @relation(fields: [templateId], references: [id], onDelete: Restrict)
-  templateRoundId     String
-  templateRound       PostoperativeSsiTemplateRound @relation(fields: [templateRoundId], references: [id], onDelete: Restrict)
-  templateNameSnapshot String                     @db.VarChar(191)
-  roundLabel          String                      @db.VarChar(191)
-  roundNumber         Int
-  dayOffset           Int
-  dueAt               DateTime                    @db.Date
-  status              String                      @default("PENDING") @db.VarChar(24)
-  completedAt         DateTime?
-  completedById       String?                     @db.VarChar(191)
-  createdAt           DateTime                    @default(now())
-  updatedAt           DateTime                    @updatedAt
-  followup            PostoperativeSsiFollowup?
+  id                   String                        @id @default(cuid())
+  registerId           String
+  register             SurgeryRegister               @relation(fields: [registerId], references: [id], onDelete: Restrict)
+  templateId           String
+  template             PostoperativeSsiTemplate      @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  templateRoundId      String
+  templateRound        PostoperativeSsiTemplateRound @relation(fields: [templateRoundId], references: [id], onDelete: Restrict)
+  templateNameSnapshot String                        @db.VarChar(191)
+  roundLabel           String                        @db.VarChar(191)
+  roundNumber          Int
+  dayOffset            Int
+  dueAt                DateTime                      @db.Date
+  status               String                        @default("PENDING") @db.VarChar(24)
+  completedAt          DateTime?
+  completedById        String?                       @db.VarChar(191)
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+  followup             PostoperativeSsiFollowup?
 
   @@unique([registerId, templateId, roundNumber])
   @@index([status, dueAt, id])
@@ -480,15 +488,15 @@ model PostoperativeFollowupTask {
 }
 
 model SurgicalInstrument {
-  id          String                     @id @default(cuid())
-  code        String                     @unique @db.VarChar(64)
-  name        String                     @db.VarChar(191)
-  category    String                     @db.VarChar(64)
-  description String?                    @db.Text
-  isActive    Boolean                    @default(true)
-  createdById String                     @db.VarChar(191)
-  createdAt   DateTime                   @default(now())
-  updatedAt   DateTime                   @updatedAt
+  id          String                      @id @default(cuid())
+  code        String                      @unique @db.VarChar(64)
+  name        String                      @db.VarChar(191)
+  category    String                      @db.VarChar(64)
+  description String?                     @db.Text
+  isActive    Boolean                     @default(true)
+  createdById String                      @db.VarChar(191)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
   setItems    SurgicalInstrumentSetItem[]
   counts      SurgeryInstrumentCount[]
 
@@ -496,14 +504,14 @@ model SurgicalInstrument {
 }
 
 model SurgicalInstrumentSet {
-  id          String                     @id @default(cuid())
-  code        String                     @unique @db.VarChar(64)
-  name        String                     @db.VarChar(191)
-  description String?                    @db.Text
-  isActive    Boolean                    @default(true)
-  createdById String                     @db.VarChar(191)
-  createdAt   DateTime                   @default(now())
-  updatedAt   DateTime                   @updatedAt
+  id          String                      @id @default(cuid())
+  code        String                      @unique @db.VarChar(64)
+  name        String                      @db.VarChar(191)
+  description String?                     @db.Text
+  isActive    Boolean                     @default(true)
+  createdById String                      @db.VarChar(191)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
   items       SurgicalInstrumentSetItem[]
   caseUses    SurgeryInstrumentSetUse[]
 
@@ -578,22 +586,22 @@ model SurgeryImplantRecord {
 }
 
 model SurgeryInstrumentCount {
-  id                String                 @id @default(cuid())
-  registerId        String
-  register          SurgeryRegister        @relation(fields: [registerId], references: [id], onDelete: Restrict)
-  instrumentId      String?
-  instrument        SurgicalInstrument?    @relation(fields: [instrumentId], references: [id], onDelete: Restrict)
-  checkpoint        String                 @db.VarChar(32)
-  category          String                 @db.VarChar(32)
-  itemLabel         String                 @db.VarChar(191)
-  expectedQuantity  Int
-  countedQuantity   Int
-  variance          Int
-  discrepancyNote   String?                @db.Text
-  resolvedAt        DateTime?
-  countedById       String                 @db.VarChar(191)
-  witnessName       String?                @db.VarChar(191)
-  countedAt         DateTime               @default(now())
+  id               String              @id @default(cuid())
+  registerId       String
+  register         SurgeryRegister     @relation(fields: [registerId], references: [id], onDelete: Restrict)
+  instrumentId     String?
+  instrument       SurgicalInstrument? @relation(fields: [instrumentId], references: [id], onDelete: Restrict)
+  checkpoint       String              @db.VarChar(32)
+  category         String              @db.VarChar(32)
+  itemLabel        String              @db.VarChar(191)
+  expectedQuantity Int
+  countedQuantity  Int
+  variance         Int
+  discrepancyNote  String?             @db.Text
+  resolvedAt       DateTime?
+  countedById      String              @db.VarChar(191)
+  witnessName      String?             @db.VarChar(191)
+  countedAt        DateTime            @default(now())
 
   @@index([registerId, countedAt])
   @@index([registerId, checkpoint, category])

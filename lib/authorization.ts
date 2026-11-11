@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { env } from "@/lib/env";
 import { hasPermission, type Permission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
@@ -30,6 +31,8 @@ export async function getAuthorizedUser(permission: Permission) {
   const user = await getAuthorizationUser(session.user.id);
   if (!user || !user.isActive || user.deletedAt || !hasPermission(user.role, permission))
     return null;
+  if (permission.startsWith("postop:") && !env.ORREG_POSTOP_ENABLED) return null;
+  if (permission.startsWith("equipment:") && !env.ORREG_EQUIPMENT_ENABLED) return null;
   if (permission === "postop:configure" && user.role !== "SUPERADMIN" && !user.isPostopLead) return null;
   return user;
 }

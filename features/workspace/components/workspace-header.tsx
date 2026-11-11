@@ -14,8 +14,10 @@ import { WorkspaceSidebar } from "./workspace-sidebar";
 
 export function WorkspaceHeader({
   user,
+  enabledModules,
 }: {
   user: { name: string; role: UserRole };
+  enabledModules: readonly string[];
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -48,6 +50,7 @@ export function WorkspaceHeader({
               </Dialog.Close>
               <WorkspaceSidebar
                 user={user}
+                enabledModules={enabledModules}
                 close={() => setMobileOpen(false)}
               />
             </Dialog.Popup>
