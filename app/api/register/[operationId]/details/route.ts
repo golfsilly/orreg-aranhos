@@ -5,6 +5,7 @@ import { parseRegisterDetails } from "@/lib/register/details";
 import { z } from "zod";
 import { writeAudit } from "@/lib/audit/write";
 import { recordDenied } from "@/lib/audit/denied";
+import { hasTrustedRequestOrigin } from "@/lib/security/request-origin";
 
 const headers = { "Cache-Control": "private, no-store" };
 type Context = { params: Promise<{ operationId: string }> };
@@ -27,7 +28,7 @@ export async function GET(_request: Request, { params }: Context) {
 
 export async function PATCH(request: Request, { params }: Context) {
   const user = await getAuthorizedUser("register:write");
-  if (!user || request.headers.get("origin") !== new URL(request.url).origin) { await recordDenied("REGISTER_DETAILS_UPDATED", user?.id); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
+  if (!user || !hasTrustedRequestOrigin(request)) { await recordDenied("REGISTER_DETAILS_UPDATED", user?.id); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
   const failure = async (reason: "INVALID_INPUT" | "CONFLICT" | "NOT_FOUND") => writeAudit(prisma, { actorId: user.id, event: "REGISTER_DETAILS_UPDATED", outcome: "FAILURE", metadata: { reason } });
   const id = getId((await params).operationId);
   if (!id) { await failure("INVALID_INPUT"); return Response.json({ error: "Invalid operation ID" }, { status: 400, headers }); }

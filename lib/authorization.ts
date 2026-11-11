@@ -29,10 +29,22 @@ export async function getAuthorizedUser(permission: Permission) {
   const session = await getRequestSession();
   if (!session) return null;
   const user = await getAuthorizationUser(session.user.id);
-  if (!user || !user.isActive || user.deletedAt || !hasPermission(user.role, permission))
+  if (
+    !user ||
+    !user.isActive ||
+    user.deletedAt ||
+    !hasPermission(user.role, permission)
+  )
     return null;
-  if (permission.startsWith("postop:") && !env.ORREG_POSTOP_ENABLED) return null;
-  if (permission.startsWith("equipment:") && !env.ORREG_EQUIPMENT_ENABLED) return null;
-  if (permission === "postop:configure" && user.role !== "SUPERADMIN" && !user.isPostopLead) return null;
+  if (permission.startsWith("postop:") && !env.ORREG_POSTOP_ENABLED)
+    return null;
+  if (permission.startsWith("equipment:") && !env.ORREG_EQUIPMENT_ENABLED)
+    return null;
+  if (
+    permission === "postop:configure" &&
+    user.role !== "SUPERADMIN" &&
+    !user.isPostopLead
+  )
+    return null;
   return user;
 }

@@ -10,7 +10,9 @@ export default async function OperationsPage() {
   return (
     <div>
       <OperationsPageHeader />
-      <OperationsWorkspace canSync={hasPermission(user.role, "register:write")} />
+      <OperationsWorkspace
+        canSync={hasPermission(user.role, "register:write")}
+      />
     </div>
   );
 }

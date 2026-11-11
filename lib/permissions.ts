@@ -31,7 +31,17 @@ const permissions: Record<UserRole, readonly Permission[]> = {
     "equipment:write",
     "audit:read",
   ],
-  ADMIN: ["dashboard:read", "users:manage"],
+  ADMIN: [
+    "dashboard:read",
+    "users:manage",
+    "register:read",
+    "register:write",
+    "postop:read",
+    "postop:write",
+    "postop:configure",
+    "equipment:read",
+    "equipment:write",
+  ],
   NURSE: [
     "dashboard:read",
     "register:read",
@@ -42,12 +52,7 @@ const permissions: Record<UserRole, readonly Permission[]> = {
     "equipment:read",
     "equipment:write",
   ],
-  DOCTOR: [
-    "dashboard:read",
-    "register:read",
-    "postop:read",
-    "equipment:read",
-  ],
+  DOCTOR: ["dashboard:read", "register:read", "postop:read", "equipment:read"],
   USER: ["dashboard:read"],
 };
 

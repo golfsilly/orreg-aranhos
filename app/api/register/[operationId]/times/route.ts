@@ -5,6 +5,7 @@ import { parseRegisterTimes, timeFields, type RegisterTimes } from "@/lib/regist
 import { z } from "zod";
 import { writeAudit } from "@/lib/audit/write";
 import { recordDenied } from "@/lib/audit/denied";
+import { hasTrustedRequestOrigin } from "@/lib/security/request-origin";
 
 const headers = { "Cache-Control": "private, no-store" };
 type Context = { params: Promise<{ operationId: string }> };
@@ -27,7 +28,7 @@ export async function GET(_request: Request, { params }: Context) {
 export async function PATCH(request: Request, { params }: Context) {
   const user = await getAuthorizedUser("register:write");
   if (!user) { await recordDenied("REGISTER_TIMES_UPDATED"); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
-  if (request.headers.get("origin") !== new URL(request.url).origin) { await recordDenied("REGISTER_TIMES_UPDATED", user.id); return Response.json({ error: "Invalid origin" }, { status: 403, headers }); }
+  if (!hasTrustedRequestOrigin(request)) { await recordDenied("REGISTER_TIMES_UPDATED", user.id); return Response.json({ error: "Invalid origin" }, { status: 403, headers }); }
   const failure = async (reason: "INVALID_INPUT" | "CONFLICT" | "NOT_FOUND") => writeAudit(prisma, { actorId: user.id, event: "REGISTER_TIMES_UPDATED", outcome: "FAILURE", metadata: { reason } });
   const id = getId((await params).operationId);
   if (!id) { await failure("INVALID_INPUT"); return Response.json({ error: "Invalid operation ID" }, { status: 400, headers }); }

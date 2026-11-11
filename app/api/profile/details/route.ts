@@ -2,12 +2,13 @@ import { getAuthorizedUser } from "@/lib/authorization";
 import { recordDenied } from "@/lib/audit/denied";
 import { writeAudit } from "@/lib/audit/write";
 import { prisma } from "@/lib/prisma";
+import { hasTrustedRequestOrigin } from "@/lib/security/request-origin";
 import { selfProfileSchema, workFieldNames } from "@/lib/user-profile";
 
 const headers = { "Cache-Control": "private, no-store" };
 export async function PATCH(request: Request) {
   const actor = await getAuthorizedUser("dashboard:read");
-  if (!actor || request.headers.get("origin") !== new URL(request.url).origin) { await recordDenied("PROFILE_UPDATED", actor?.id); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
+  if (!actor || !hasTrustedRequestOrigin(request)) { await recordDenied("PROFILE_UPDATED", actor?.id); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
   let body: unknown;
   try { body = await request.json(); } catch { await writeAudit(prisma, { actorId: actor.id, event: "PROFILE_UPDATED", outcome: "FAILURE", metadata: { reason: "INVALID_INPUT" } }); return Response.json({ error: "Invalid request" }, { status: 400, headers }); }
   const parsed = selfProfileSchema.safeParse(body);
