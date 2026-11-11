@@ -38,7 +38,7 @@ export function HomePage() {
     <main className="relative min-h-screen overflow-x-clip bg-background text-foreground">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[720px] bg-[radial-gradient(ellipse_at_78%_12%,#b4cca51a,transparent_58%)] dark:bg-[radial-gradient(ellipse_at_78%_12%,#4d7f3d12,transparent_58%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[720px] bg-[radial-gradient(ellipse_at_78%_12%,color-mix(in_oklab,var(--primary)_8%,transparent),transparent_58%)] dark:bg-[radial-gradient(ellipse_at_78%_12%,color-mix(in_oklab,var(--primary)_5%,transparent),transparent_58%)]"
       />
       <div className="relative mx-auto w-full max-w-[1440px] px-5 sm:px-8 lg:px-10 xl:px-14">
         <header className="flex h-[72px] items-center justify-between gap-4 border-b border-border/65 sm:h-20">

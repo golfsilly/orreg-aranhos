@@ -44,7 +44,7 @@ export function WorkspaceHeader({
               </Dialog.Description>
               <Dialog.Close
                 aria-label="ปิดเมนู"
-                className="absolute top-6 right-4 z-10 grid size-9 place-items-center rounded-lg text-[#6b8975] hover:bg-[#e5f1e7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25835a] dark:text-[#a8c6b0] dark:hover:bg-white/10"
+                className="absolute top-6 right-4 z-10 grid size-9 place-items-center rounded-lg text-primary hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-primary dark:hover:bg-white/10"
               >
                 <X className="size-5" />
               </Dialog.Close>

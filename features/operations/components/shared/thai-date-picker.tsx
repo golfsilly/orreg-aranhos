@@ -119,7 +119,7 @@ export function ThaiDatePicker({
                 const iso = toIsoDate(date);
                 const selected = iso === value;
                 const isToday = iso === todayIso;
-                return <button key={iso} type="button" aria-label={formatThaiDate(date)} aria-pressed={selected} onClick={() => selectDate(date)} className={`relative mx-auto grid size-10 place-items-center rounded-xl text-sm transition focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${selected ? "bg-primary font-bold text-primary-foreground shadow-[0_5px_15px_#176c4930]" : "text-foreground hover:bg-primary/10 hover:text-primary"} ${isToday && !selected ? "font-bold text-primary after:absolute after:bottom-1.5 after:size-1 after:rounded-full after:bg-primary" : ""}`}>{day}</button>;
+                return <button key={iso} type="button" aria-label={formatThaiDate(date)} aria-pressed={selected} onClick={() => selectDate(date)} className={`relative mx-auto grid size-10 place-items-center rounded-xl text-sm transition focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${selected ? "bg-primary font-bold text-primary-foreground shadow-md" : "text-foreground hover:bg-primary/10 hover:text-primary"} ${isToday && !selected ? "font-bold text-primary after:absolute after:bottom-1.5 after:size-1 after:rounded-full after:bg-primary" : ""}`}>{day}</button>;
               })}
             </div>
             <div className="mt-3 flex items-center justify-between border-t border-border pt-3">

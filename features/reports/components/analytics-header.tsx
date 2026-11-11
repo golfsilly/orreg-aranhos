@@ -1,0 +1,11 @@
+import Link from "next/link";
+import { ArrowUpRight, CalendarDays, ChartNoAxesCombined, ClipboardList } from "lucide-react";
+
+export function AnalyticsHeader({ overview = false, canReadRegisters = false }: { overview?: boolean; canReadRegisters?: boolean }) {
+  return <header className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-5 sm:p-7">
+    <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-24 size-64 rounded-full border-[36px] border-primary/8" />
+    <div className="relative flex flex-col justify-between gap-5 lg:flex-row lg:items-center"><div className="max-w-xl"><p className="mb-2 flex items-center gap-2 text-[10px] font-bold tracking-[0.15em] text-primary"><ChartNoAxesCombined className="size-3.5" aria-hidden="true" /> OR-REG · {overview ? "SURGERY OVERVIEW" : "SURGERY ANALYTICS"}</p><h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{overview ? "ภาพรวมงานผ่าตัด" : "รายงานและสถิติ"}</h1><p className="mt-2 text-xs leading-6 text-muted-foreground sm:text-sm">{overview ? "ติดตามปริมาณงาน สัดส่วนเคส และข้อมูลที่ต้องทบทวนในมุมมองเดียว" : "วิเคราะห์ภาระงานทีมผ่าตัด การใช้ห้อง และความครบถ้วนของทะเบียน"}</p></div>
+      <nav aria-label="ทางลัดงานผ่าตัด" className="flex flex-wrap gap-2">{canReadRegisters && <><Link href="/surgery/operations" className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-3 text-xs font-semibold hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"><ClipboardList className="size-3.5 text-primary" />ทะเบียน</Link><Link href="/surgery/calendar" className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-3 text-xs font-semibold hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"><CalendarDays className="size-3.5 text-primary" />ปฏิทินห้อง</Link></>}<Link href={overview ? "/surgery/reports" : "/surgery/dashboard"} className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-ring">{overview ? "รายงาน" : "ภาพรวม"}<ArrowUpRight className="size-3.5" /></Link></nav>
+    </div>
+  </header>;
+}

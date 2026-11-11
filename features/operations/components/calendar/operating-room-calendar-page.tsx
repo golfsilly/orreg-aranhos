@@ -7,7 +7,9 @@ import { OperationRegisterDialog } from "../shared/operation-register-dialog";
 import { OperatingRoomCalendarSkeleton } from "./operating-room-calendar-skeleton";
 import { ThaiDatePicker } from "../shared/thai-date-picker";
 import {
-  bangkokDateTime,
+  calendarEndLabel,
+  calendarInterval,
+  calendarStartLabel,
   calendarMonths,
   monthKey,
   occupancyOnDate,
@@ -15,9 +17,9 @@ import {
   operationOccursOnDate,
   operationCalendarDate,
   overlappingOperationIds,
+  timelineLanes,
   shiftDate,
   thaiDate,
-  timeLabel,
   visibleCalendarDays,
   type CalendarOperation,
   type CalendarView,
@@ -41,19 +43,18 @@ const fetchMonth = async (month: string, signal?: AbortSignal): Promise<Calendar
 
 function RoomOperationCard({ operation, overlap, compact, timeRange, onClick }: { operation: CalendarOperation; overlap: boolean; compact?: boolean; timeRange?: string; onClick: () => void }) {
   const emergency = typeof operation.emergency_name === "string" && operation.emergency_name.toLocaleLowerCase("en").includes("emergency");
-  const interval = occupancyInterval(operation);
+  const interval = calendarInterval(operation);
   const registered = typeof operation.registerNumber === "string" && !operation.needsDateSync;
   return <button type="button" onClick={onClick} className={`group relative w-full min-w-0 overflow-hidden rounded-xl border p-2.5 pl-3 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring before:absolute before:inset-y-0 before:left-0 before:w-1 ${overlap ? "border-rose-500/40 bg-rose-500/[0.06] before:bg-rose-500 ring-1 ring-rose-500/15" : emergency ? "border-amber-500/30 bg-amber-500/[0.055] before:bg-amber-500/70 hover:border-amber-500/50" : "border-emerald-900/10 bg-gradient-to-br from-emerald-50/90 to-white dark:border-emerald-100/10 dark:from-emerald-950/35 dark:to-card before:bg-primary/70 hover:border-primary/35"} ${compact ? "p-2 pl-3" : ""}`}>
     <span className="flex min-w-0 items-start justify-between gap-1.5">
       <span className="min-w-0 truncate text-xs font-bold text-primary">{registered ? rowText(operation.registerNumber) : "รอซิงก์"}</span>
-      {overlap && <TriangleAlert aria-label="เวลาใช้ห้องผ่าตัดทับซ้อน" className="size-3.5 shrink-0 text-rose-600 dark:text-rose-400" />}
+      {overlap && <TriangleAlert aria-label="ช่วงเวลาทับซ้อน" className="size-3.5 shrink-0 text-rose-600 dark:text-rose-400" />}
     </span>
       <span className="mt-1 block truncate text-xs font-semibold text-foreground group-hover:text-primary">{rowText(operation.ptname, "ไม่ระบุชื่อ")}</span>
     <span className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[10px] text-muted-foreground">
-      {interval ? <><Clock3 aria-hidden="true" className="size-3" />{timeRange ?? `${timeLabel(operation.roomEnteredAt)}–${timeLabel(operation.roomExitedAt)}`}</> : <span className="rounded-full bg-muted px-1.5 py-0.5">ไม่ระบุเวลา</span>}
+      {interval ? <><Clock3 aria-hidden="true" className="size-3" />{timeRange ?? `${calendarStartLabel(operation)}–${calendarEndLabel(operation)}`}<span className={`rounded-full px-1.5 py-0.5 ${interval.source === "room" ? "bg-primary/10 text-primary" : "border border-dashed border-amber-500/35 bg-amber-500/10 text-amber-800 dark:text-amber-300"}`}>{interval.source === "room" ? "เวลาใช้ห้อง" : "เวลาผ่าตัด"}</span></> : <span className="rounded-full bg-muted px-1.5 py-0.5">ไม่ระบุเวลา</span>}
       <span className={`rounded-full px-1.5 py-0.5 font-semibold ${emergency ? "bg-amber-500/15 text-amber-800 dark:text-amber-300" : "bg-muted text-muted-foreground"}`}>{emergency ? "ฉุกเฉิน" : "นัดหมาย"}</span>
     </span>
-    {overlap && <span className="mt-1.5 block text-[10px] font-semibold text-rose-700 dark:text-rose-300">เวลาห้องทับซ้อน</span>}
   </button>;
 }
 
@@ -65,6 +66,12 @@ function DayTimeline({ date, rooms, operations, overlapIds, onOpen, onPickRoom }
   const roomFor = (operation: CalendarOperation) => String(operation.sourceRoomId ?? "UNSPECIFIED");
   const roomOperations = (room: OperatingRoom) => operations.filter((operation) => roomFor(operation) === room.id && operationOccursOnDate(operation, date) && occupancyInterval(operation));
   const roomUnscheduled = (roomId: string) => operations.filter((operation) => roomFor(operation) === roomId && operationCalendarDate(operation) === date && !occupancyInterval(operation));
+  const roomWidths = new Map(rooms.map((room) => {
+    const lanes = timelineLanes(roomOperations(room), date);
+    const count = Math.max(1, ...[...lanes.values()].map((placement) => placement.count));
+    return [room.id, Math.max(220, count * 220)];
+  }));
+  const timelineColumns = `56px ${rooms.map((room) => `minmax(${roomWidths.get(room.id) ?? 220}px, 1fr)`).join(" ")}`;
   return <>
     <div data-testid="calendar-day-mobile" className="md:hidden">
       <div className="mb-3 flex gap-2 overflow-x-auto pb-1" aria-label="เลือกห้องผ่าตัด">
@@ -72,33 +79,34 @@ function DayTimeline({ date, rooms, operations, overlapIds, onOpen, onPickRoom }
         {rooms.map((room) => <button key={room.id} type="button" aria-pressed={rooms.length === 1 && rooms[0]?.id === room.id} onClick={() => onPickRoom(room.id)} className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition ${rooms.length === 1 && rooms[0]?.id === room.id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-foreground"}`}>{room.name}<span className="ml-1.5 opacity-70">{operations.filter((operation) => roomFor(operation) === room.id && operationCalendarDate(operation) === date).length}</span></button>)}
       </div>
       {rooms.map((room) => {
-        const scheduled = roomOperations(room).sort((a, b) => (bangkokDateTime(a.roomEnteredAt)?.timestamp ?? 0) - (bangkokDateTime(b.roomEnteredAt)?.timestamp ?? 0));
+        const scheduled = roomOperations(room).sort((a, b) => (calendarInterval(a)?.start.timestamp ?? 0) - (calendarInterval(b)?.start.timestamp ?? 0));
         const unscheduled = roomUnscheduled(room.id);
         return <section key={room.id} className="mb-3 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
           <header className="flex items-center justify-between border-b border-border/70 bg-gradient-to-r from-primary/[0.055] via-muted/20 to-transparent px-4 py-3"><span className="flex min-w-0 items-center gap-2.5"><span className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Activity aria-hidden="true" className="size-4" /></span><span className="min-w-0"><h3 className="m-0 truncate text-sm font-semibold tracking-tight">{room.name}</h3><span className="mt-0.5 block text-[10px] text-muted-foreground">ห้องผ่าตัด</span></span></span><span className="rounded-full border border-border/70 bg-background/80 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">{scheduled.length} คิว</span></header>
-          <div className="space-y-2 p-3">{scheduled.length ? scheduled.map((operation) => { const slot = occupancyOnDate(operation, date); const label = slot?.continuesFromPreviousDay ? "ต่อเนื่อง" : timeLabel(operation.roomEnteredAt); const intervalLabel = slot?.continuesFromPreviousDay ? `ต่อเนื่องถึง ${timeLabel(operation.roomExitedAt)}` : undefined; return <div key={rowId(operation)} className="grid grid-cols-[52px_minmax(0,1fr)] gap-2"><span className="pt-2 text-[11px] font-semibold tabular-nums text-muted-foreground">{label}</span><RoomOperationCard operation={operation} overlap={overlapIds.has(rowId(operation))} timeRange={intervalLabel} onClick={() => onOpen(rowId(operation))} /></div>; }) : <p className="m-0 rounded-xl border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">ไม่มีคิวตามเวลาที่บันทึก</p>}
+          <div className="space-y-2 p-3">{scheduled.length ? scheduled.map((operation) => { const slot = occupancyOnDate(operation, date); const label = slot?.continuesFromPreviousDay ? "ต่อเนื่อง" : calendarStartLabel(operation); const intervalLabel = slot?.continuesFromPreviousDay ? `ต่อเนื่องถึง ${calendarEndLabel(operation)}` : undefined; return <div key={rowId(operation)} className="grid grid-cols-[52px_minmax(0,1fr)] gap-2"><span className="pt-2 text-[11px] font-semibold tabular-nums text-muted-foreground">{label}</span><RoomOperationCard operation={operation} overlap={overlapIds.has(rowId(operation))} timeRange={intervalLabel} onClick={() => onOpen(rowId(operation))} /></div>; }) : <p className="m-0 rounded-xl border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">ไม่มีคิวตามเวลาที่บันทึก</p>}
             {unscheduled.length > 0 && <div className="mt-3 border-t border-dashed border-border pt-3"><p className="mb-2 mt-0 text-[11px] font-semibold text-muted-foreground">คิวไม่ระบุเวลา · {unscheduled.length}</p><div className="space-y-2">{unscheduled.map((operation) => <RoomOperationCard key={rowId(operation)} operation={operation} overlap={false} onClick={() => onOpen(rowId(operation))} />)}</div></div>}
           </div>
         </section>;
       })}
     </div>
     <div data-testid="calendar-day-desktop" className="hidden overflow-x-auto rounded-2xl border border-border/80 bg-card shadow-sm md:block">
-      <div className="min-w-max">
-        <div className="grid border-b border-border bg-gradient-to-r from-primary/[0.05] via-muted/35 to-muted/20" style={{ gridTemplateColumns: `56px repeat(${rooms.length}, minmax(220px, 1fr))` }}>
+      <div className="min-w-full">
+        <div className="grid border-b border-border bg-gradient-to-r from-primary/[0.05] via-muted/35 to-muted/20" style={{ gridTemplateColumns: timelineColumns }}>
           <div className="sticky left-0 z-10 border-r border-border/70 bg-muted/70 p-3 text-[10px] font-semibold text-muted-foreground">เวลา</div>
           {rooms.map((room) => { const count = operations.filter((operation) => roomFor(operation) === room.id && operationCalendarDate(operation) === date).length; return <div key={room.id} className="border-l border-border/80 px-3 py-3"><p className="m-0 truncate text-xs font-semibold tracking-tight">{room.name}</p><p className="mb-0 mt-1 text-[10px] text-muted-foreground">{count ? `${count} รายการ` : "ห้องว่าง"}</p></div>; })}
         </div>
-        <div className="flex">
+        <div className="grid" style={{ gridTemplateColumns: timelineColumns }}>
           <div className="sticky left-0 z-[2] w-14 shrink-0 bg-background/90 backdrop-blur-sm">{hourRows.map((hour) => <div key={hour} className={`h-16 border-b border-border/70 pr-2 pt-1 text-right text-[10px] tabular-nums ${hour >= 7 && hour < 19 ? "font-medium text-muted-foreground" : "text-muted-foreground/60"}`}>{String(hour).padStart(2, "0")}:00</div>)}</div>
-          {rooms.map((room) => <div key={room.id} className="relative min-h-[1536px] min-w-[220px] flex-1 border-l border-border/80" style={{ backgroundImage: "repeating-linear-gradient(to bottom, transparent 0, transparent 63px, var(--border) 64px)", backgroundSize: "100% 64px" }}>
+          {rooms.map((room) => { const lanes = timelineLanes(roomOperations(room), date); return <div key={room.id} className="relative min-h-[1536px] min-w-0 border-l border-border/80" style={{ backgroundImage: "repeating-linear-gradient(to bottom, transparent 0, transparent 63px, var(--border) 64px, transparent 64px)", backgroundSize: "100% 64px" }}>
             {roomOperations(room).map((operation) => {
               const slot = occupancyOnDate(operation, date);
               if (!slot || slot.endMinute <= slot.startMinute) return null;
-              const height = Math.max(40, ((slot.endMinute - slot.startMinute) / 60) * 64);
-              const timeRange = slot.continuesFromPreviousDay ? `ต่อเนื่องถึง ${timeLabel(operation.roomExitedAt)}` : undefined;
-              return <div key={rowId(operation)} className="absolute left-1.5 right-1.5 z-[1]" style={{ top: `${(slot.startMinute / 60) * 64}px`, height: `${height}px` }}><RoomOperationCard operation={operation} overlap={overlapIds.has(rowId(operation))} compact timeRange={timeRange} onClick={() => onOpen(rowId(operation))} /></div>;
+              const height = Math.max(68, ((slot.endMinute - slot.startMinute) / 60) * 64);
+              const placement = lanes.get(rowId(operation)) ?? { lane: 0, count: 1 };
+              const timeRange = slot.continuesFromPreviousDay ? `ต่อเนื่องถึง ${calendarEndLabel(operation)}` : undefined;
+              return <div key={rowId(operation)} className="absolute z-[1]" style={{ left: `calc(${(placement.lane * 100) / placement.count}% + 4px)`, width: `calc(${100 / placement.count}% - 8px)`, top: `${(slot.startMinute / 60) * 64}px`, height: `${height}px` }}><RoomOperationCard operation={operation} overlap={overlapIds.has(rowId(operation))} compact timeRange={timeRange} onClick={() => onOpen(rowId(operation))} /></div>;
             })}
-          </div>)}
+          </div>; })}
         </div>
       </div>
     </div>
@@ -115,7 +123,7 @@ function PeriodOverview({ view, days, operations, overlapIds, onOpen, onChooseDa
     const items = operations.filter((operation) => operationOccursOnDate(operation, day));
     return <article key={day} className={`min-w-0 overflow-hidden rounded-xl border bg-card ${selectedDate === day ? "border-primary/50 ring-1 ring-primary/20" : "border-border"}`}>
       <button type="button" onClick={() => onChooseDate(day)} className="flex w-full items-center justify-between gap-2 border-b border-border bg-muted/25 px-3 py-2.5 text-left hover:bg-primary/5"><span className="text-xs font-semibold text-foreground">{thaiDate(day, { weekday: "short", day: "numeric", month: "short" })}</span><span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">{items.length}</span></button>
-      <div className={`space-y-1.5 p-2 ${compact ? "min-h-16" : "min-h-36"}`}>{items.slice(0, compact ? 3 : 12).map((operation) => { const slot = occupancyOnDate(operation, day); const time = slot?.continuesFromPreviousDay ? `ต่อเนื่องถึง ${timeLabel(operation.roomExitedAt)}` : timeLabel(operation.roomEnteredAt) === "—" ? "--:--" : timeLabel(operation.roomEnteredAt); return <button key={rowId(operation)} type="button" onClick={() => onOpen(rowId(operation))} className={`block w-full truncate rounded-lg border px-2 py-1.5 text-left text-[10px] transition hover:border-primary/40 ${overlapIds.has(rowId(operation)) ? "border-rose-500/50 bg-rose-500/10 text-rose-800 dark:text-rose-300" : "border-border/70 bg-background text-foreground"}`}><span className="mr-1.5 font-semibold text-primary">{time}</span><span className="mr-1 text-muted-foreground">{allRooms.get(String(operation.sourceRoomId ?? "UNSPECIFIED")) ?? "ไม่ระบุห้อง"}</span>{rowText(operation.registerNumber, "รอซิงก์")} · {rowText(operation.ptname, "ไม่ระบุชื่อ")}</button>; })}{items.length > (compact ? 3 : 12) && <p className="m-0 px-1 text-[10px] text-muted-foreground">อีก {items.length - (compact ? 3 : 12)} รายการ</p>}{!items.length && <p className="m-0 py-3 text-center text-[10px] text-muted-foreground">ไม่มีรายการ</p>}</div>
+      <div className={`space-y-1.5 p-2 ${compact ? "min-h-16" : "min-h-36"}`}>{items.slice(0, compact ? 3 : 12).map((operation) => { const slot = occupancyOnDate(operation, day); const time = slot?.continuesFromPreviousDay ? `ต่อเนื่องถึง ${calendarEndLabel(operation)}` : calendarStartLabel(operation) === "—" ? "--:--" : calendarStartLabel(operation); return <button key={rowId(operation)} type="button" onClick={() => onOpen(rowId(operation))} className={`block w-full truncate rounded-lg border px-2 py-1.5 text-left text-[10px] transition hover:border-primary/40 ${overlapIds.has(rowId(operation)) ? "border-rose-500/50 bg-rose-500/10 text-rose-800 dark:text-rose-300" : "border-border/70 bg-background text-foreground"}`}><span className="mr-1.5 font-semibold text-primary">{time}</span><span className="mr-1 text-muted-foreground">{allRooms.get(String(operation.sourceRoomId ?? "UNSPECIFIED")) ?? "ไม่ระบุห้อง"}</span>{rowText(operation.registerNumber, "รอซิงก์")} · {rowText(operation.ptname, "ไม่ระบุชื่อ")}</button>; })}{items.length > (compact ? 3 : 12) && <p className="m-0 px-1 text-[10px] text-muted-foreground">อีก {items.length - (compact ? 3 : 12)} รายการ</p>}{!items.length && <p className="m-0 py-3 text-center text-[10px] text-muted-foreground">ไม่มีรายการ</p>}</div>
     </article>;
   };
   if (view === "week") return <div data-testid="calendar-week" className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">{days.map((day) => renderDay(day))}</div>;
@@ -152,8 +160,9 @@ export function OperatingRoomCalendarPage({ canEdit }: { canEdit: boolean }) {
   const overlapIds = overlappingOperationIds(viewOperations);
   const selectedOperation = viewOperations.find((operation) => rowId(operation) === selectedOperationId);
   const roomNamesForView = roomFilter === "ALL" ? rooms : rooms.filter((room) => room.id === roomFilter);
-  const scheduledCount = viewOperations.filter((operation) => occupancyInterval(operation)).length;
-  const unscheduledCount = viewOperations.length - scheduledCount;
+  const roomTimeCount = viewOperations.filter((operation) => calendarInterval(operation)?.source === "room").length;
+  const operationTimeCount = viewOperations.filter((operation) => calendarInterval(operation)?.source === "operation").length;
+  const unscheduledCount = viewOperations.length - roomTimeCount - operationTimeCount;
   const displayTitle = view === "day" ? thaiDate(date, { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : view === "week" ? `${thaiDate(days[0]!, { day: "numeric", month: "short" })} – ${thaiDate(days[6]!, { day: "numeric", month: "short", year: "numeric" })}` : thaiDate(`${monthKey(date)}-15`, { month: "long", year: "numeric" });
   const moveDate = (direction: -1 | 1) => setDate((current) => view === "day" ? shiftDate(current, direction) : view === "week" ? shiftDate(current, direction * 7) : shiftDate(`${monthKey(current)}-15`, direction * 28).slice(0, 7) + "-15");
   const setMonthDirection = (direction: -1 | 1) => {
@@ -189,7 +198,8 @@ export function OperatingRoomCalendarPage({ canEdit }: { canEdit: boolean }) {
       <div className="mt-5 flex flex-col gap-3 border-t border-border/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="m-0 min-w-0 text-base font-semibold tracking-tight sm:text-lg">{displayTitle}</h2>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
-          <div className="flex min-w-32 items-center gap-2.5 rounded-2xl border border-primary/10 bg-primary/[0.045] px-3 py-2"><span className="grid size-8 place-items-center rounded-xl bg-primary/10 text-primary"><Clock3 aria-hidden="true" className="size-4" /></span><span><span className="block text-[10px] text-muted-foreground">มีเวลา</span><span className="block text-sm font-bold tabular-nums text-foreground">{scheduledCount} <span className="text-[10px] font-medium text-muted-foreground">คิว</span></span></span></div>
+          <div className="flex min-w-32 items-center gap-2.5 rounded-2xl border border-primary/10 bg-primary/[0.045] px-3 py-2"><span className="grid size-8 place-items-center rounded-xl bg-primary/10 text-primary"><Clock3 aria-hidden="true" className="size-4" /></span><span><span className="block text-[10px] text-muted-foreground">เวลาเข้า–ออกห้อง</span><span className="block text-sm font-bold tabular-nums text-foreground">{roomTimeCount} <span className="text-[10px] font-medium text-muted-foreground">คิว</span></span></span></div>
+          <div className="flex min-w-32 items-center gap-2.5 rounded-2xl border border-amber-500/20 bg-amber-500/[0.045] px-3 py-2"><span className="grid size-8 place-items-center rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300"><Clock3 aria-hidden="true" className="size-4" /></span><span><span className="block text-[10px] text-muted-foreground">เวลาเริ่ม–เสร็จผ่า</span><span className="block text-sm font-bold tabular-nums text-foreground">{operationTimeCount} <span className="text-[10px] font-medium text-muted-foreground">คิว</span></span></span></div>
           <div className="flex min-w-32 items-center gap-2.5 rounded-2xl border border-border/70 bg-muted/25 px-3 py-2"><span className="grid size-8 place-items-center rounded-xl bg-muted text-muted-foreground"><CalendarDays aria-hidden="true" className="size-4" /></span><span><span className="block text-[10px] text-muted-foreground">ไม่ระบุเวลา</span><span className="block text-sm font-bold tabular-nums text-foreground">{unscheduledCount} <span className="text-[10px] font-medium text-muted-foreground">คิว</span></span></span></div>
           {overlapIds.size > 0 && <div className="col-span-2 flex items-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/[0.055] px-3 py-2 sm:col-span-1"><span className="grid size-8 place-items-center rounded-xl bg-rose-500/10 text-rose-600"><TriangleAlert aria-hidden="true" className="size-4" /></span><span><span className="block text-[10px] text-rose-700 dark:text-rose-300">เวลาทับซ้อน</span><span className="block text-sm font-bold tabular-nums text-rose-800 dark:text-rose-200">{overlapIds.size} <span className="text-[10px] font-medium">คิว</span></span></span></div>}
         </div>

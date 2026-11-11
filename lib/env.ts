@@ -31,6 +31,7 @@ export const env = createEnv({
     SMTP_FROM: z.string().min(1).optional(),
     ORREG_POSTOP_ENABLED: z.stringbool().default(false),
     ORREG_EQUIPMENT_ENABLED: z.stringbool().default(false),
+    EXTERNAL_REPORTS_API_KEY: z.string().min(32).optional(),
   },
   experimental__runtimeEnv: {},
   emptyStringAsUndefined: true,

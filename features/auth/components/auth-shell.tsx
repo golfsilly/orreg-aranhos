@@ -7,14 +7,14 @@ import Link from "next/link";
 export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
     <main className="min-h-screen bg-background text-foreground lg:grid lg:grid-cols-[minmax(420px,0.9fr)_minmax(560px,1.1fr)]">
-      <aside className="relative hidden min-h-screen overflow-hidden bg-[#103f38] p-12 text-white lg:flex lg:flex-col lg:justify-between xl:p-16">
+      <aside className="relative hidden min-h-screen overflow-hidden bg-primary p-12 text-primary-foreground lg:flex lg:flex-col lg:justify-between xl:p-16 dark:bg-card dark:text-card-foreground">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -top-48 -left-24 size-[560px] rounded-full bg-[#57b49b]/20 blur-[100px]"
+          className="pointer-events-none absolute -top-48 -left-24 size-[560px] rounded-full bg-primary/10 blur-[100px]"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-28 -bottom-40 size-[540px] rounded-full border border-white/10 shadow-[0_0_0_64px_#ffffff05,0_0_0_128px_#ffffff04]"
+          className="pointer-events-none absolute -right-28 -bottom-40 size-[540px] rounded-full border border-white/10 shadow-md"
         />
         <Link href="/" className="relative flex w-fit items-center gap-3">
           <span className="flex size-11 items-center justify-center rounded-2xl bg-white p-1">
@@ -24,26 +24,26 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
             <span className="block text-sm font-bold tracking-[0.18em]">
               {BRAND.wordmark}
             </span>
-            <span className="block text-[10px] tracking-[0.2em] text-emerald-100/65">
+            <span className="block text-[10px] tracking-[0.2em] text-primary-foreground/65 dark:text-muted-foreground">
               OPERATING ROOM
             </span>
           </span>
         </Link>
         <div className="relative max-w-lg">
-          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-emerald-100/15 bg-white/5 px-4 py-2 text-xs tracking-wide text-emerald-100/80">
+          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-primary-foreground/20 bg-white/5 px-4 py-2 text-xs tracking-wide text-primary-foreground/80 dark:border-border dark:text-card-foreground">
             <Activity className="size-4" /> ระบบทะเบียนผ่าตัด
           </div>
           <h2 className="text-4xl leading-[1.35] font-semibold tracking-tight xl:text-5xl">
             ดูแลทุกการผ่าตัด
             <br />
-            <span className="text-[#a7e1cd]">ด้วยข้อมูลที่เชื่อมโยงกัน</span>
+            <span className="text-primary-foreground/80 dark:text-primary">ด้วยข้อมูลที่เชื่อมโยงกัน</span>
           </h2>
-          <p className="mt-6 max-w-sm text-sm leading-7 text-emerald-50/70">
+          <p className="mt-6 max-w-sm text-sm leading-7 text-primary-foreground/75 dark:text-muted-foreground">
             พื้นที่ทำงานสำหรับบุคลากรห้องผ่าตัด โรงพยาบาลอรัญประเทศ
           </p>
         </div>
-        <div className="relative flex items-center gap-3 border-t border-white/10 pt-7 text-xs text-emerald-50/60">
-          <ShieldCheck className="size-5 text-[#9bd9c6]" />{" "}
+        <div className="relative flex items-center gap-3 border-t border-white/10 pt-7 text-xs text-primary-foreground/65 dark:text-muted-foreground">
+          <ShieldCheck className="size-5 text-primary-foreground/80 dark:text-primary" />{" "}
           สำหรับบุคลากรที่ได้รับสิทธิ์เข้าใช้งาน
         </div>
       </aside>

@@ -81,7 +81,7 @@ export function DashboardOverview({
           {hasPermission(user.role, "register:read") && (
             <Link
               href="/surgery/operations"
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-[0_6px_18px_#116b4922] transition hover:bg-primary/90"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-md transition hover:bg-primary/90"
             >
               ดูทะเบียนผ่าตัด <ArrowRight className="size-4" />
             </Link>
@@ -95,7 +95,7 @@ export function DashboardOverview({
         {cards.map(({ label, value, caption, icon: Icon }) => (
           <article
             key={label}
-            className="group relative overflow-hidden rounded-[20px] border border-border bg-card p-5 shadow-[0_5px_24px_#11271a06] sm:p-6"
+            className="group relative overflow-hidden rounded-[20px] border border-border bg-card p-5 shadow-md sm:p-6"
           >
             <div className="flex items-start justify-between gap-3">
               <span className="text-[13px] font-medium text-muted-foreground">
@@ -120,7 +120,7 @@ export function DashboardOverview({
         ))}
       </section>
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <section className="min-w-0 rounded-[20px] border border-border bg-card p-5 shadow-[0_5px_24px_#11271a06] sm:p-6">
+        <section className="min-w-0 rounded-[20px] border border-border bg-card p-5 shadow-md sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2.5">
@@ -147,7 +147,7 @@ export function DashboardOverview({
             }))}
           />
         </section>
-        <aside className="flex flex-col rounded-[20px] border border-border bg-card p-5 shadow-[0_5px_24px_#11271a06] sm:p-6">
+        <aside className="flex flex-col rounded-[20px] border border-border bg-card p-5 shadow-md sm:p-6">
           <div className="flex items-center gap-2.5">
             <span className="grid size-9 place-items-center rounded-xl bg-secondary text-primary">
               <Sparkles className="size-[18px]" />

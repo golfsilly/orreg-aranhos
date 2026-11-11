@@ -47,6 +47,8 @@ ORDER BY o.request_operation_date ASC, o.operation_id DESC`;
 export const operationAnalyticsForRangeSql = `
 SELECT
   o.operation_id,
+  o.spclty,
+  sp.NAME AS department_name,
   o.room_id,
   o.request_operation_date,
   e.emergency_name,
@@ -57,6 +59,7 @@ SELECT
   detail.operation_ended_at
 FROM operation_list o
   LEFT JOIN operation_status s ON s.status_id = o.status_id
+  LEFT JOIN spclty sp ON sp.spclty = o.spclty
   LEFT JOIN operation_emergency e ON e.emergency_id = o.emergency_id
   LEFT JOIN (SELECT an, MIN(ward) AS ward FROM ipt GROUP BY an) t ON t.an = o.an
   LEFT JOIN ward w ON w.ward = t.ward

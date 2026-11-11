@@ -29,7 +29,7 @@ const cameraViews: { id: SceneView; label: string }[] = [
   { id: "equipment", label: "อุปกรณ์" },
 ];
 const iconButton =
-  "grid size-8 shrink-0 cursor-pointer place-items-center rounded-lg text-[#526d5b] transition hover:bg-[#dce9d8] focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40 sm:size-9 dark:text-[#adcbb4] dark:hover:bg-[#254430]";
+  "grid size-8 shrink-0 cursor-pointer place-items-center rounded-lg text-primary transition hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40 sm:size-9 dark:text-primary dark:hover:bg-accent";
 
 export function OperatingRoomViewer() {
   const { resolvedTheme } = useTheme();
@@ -69,7 +69,7 @@ export function OperatingRoomViewer() {
       id="operating-theatre"
     >
       <div
-        className="relative isolate h-[460px] overflow-hidden rounded-[28px] border border-[#d1dfd0] bg-[#edf2e8] shadow-[0_24px_80px_-45px_#1c503a55] sm:h-[580px] sm:rounded-[36px] lg:h-[660px] xl:h-[700px] dark:border-[#2b4839] dark:bg-[#10261f]"
+        className="relative isolate h-[460px] overflow-hidden rounded-[28px] border border-border bg-accent shadow-md sm:h-[580px] sm:rounded-[36px] lg:h-[660px] xl:h-[700px] dark:border-border dark:bg-accent"
         role="region"
         aria-label="สำรวจห้องผ่าตัดจำลอง 3D"
         aria-describedby="scene-description"
@@ -83,9 +83,9 @@ export function OperatingRoomViewer() {
           zoomRequest={zoomRequest}
           onStatusChange={onStatusChange}
         />
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-2 bg-gradient-to-b from-[#edf2e8]/95 to-transparent px-4 pt-4 pb-12 sm:px-6 sm:pt-5 dark:from-[#10261f]/95">
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-2 bg-gradient-to-b from-background/95 to-transparent px-4 pt-4 pb-12 sm:px-6 sm:pt-5 dark:from-background/95">
           <div>
-            <div className="flex items-center gap-2 text-[9px] font-bold tracking-[0.2em] text-[#315b49] sm:text-[10px] dark:text-[#b4cfbe]">
+            <div className="flex items-center gap-2 text-[9px] font-bold tracking-[0.2em] text-foreground sm:text-[10px] dark:text-primary">
               <span className="relative flex size-1.5">
                 <span className="absolute inline-flex size-full rounded-full bg-emerald-500 opacity-40 motion-safe:animate-ping" />
                 <span className="relative size-1.5 rounded-full bg-emerald-600" />
@@ -93,13 +93,13 @@ export function OperatingRoomViewer() {
               INTEGRATED OPERATING THEATRE
             </div>
           </div>
-          <span className="shrink-0 rounded-full border border-[#c1d4bf] bg-white/55 px-2 py-1 text-[8px] font-semibold tracking-[0.08em] text-[#55705d] backdrop-blur-sm sm:px-2.5 sm:text-[9px] dark:border-[#355840] dark:bg-[#132b20]/70 dark:text-[#a5c1ad]">
+          <span className="shrink-0 rounded-full border border-border bg-white/55 px-2 py-1 text-[8px] font-semibold tracking-[0.08em] text-primary backdrop-blur-sm sm:px-2.5 sm:text-[9px] dark:border-border dark:bg-accent/70 dark:text-primary">
             3D SIMULATION
           </span>
         </div>
         {status === "loading" && (
           <div
-            className="absolute inset-0 z-20 grid place-items-center bg-[#edf2e8]/90 dark:bg-[#10261f]/90"
+            className="absolute inset-0 z-20 grid place-items-center bg-accent/90 dark:bg-accent/90"
             role="status"
           >
             <div className="text-center">
@@ -117,7 +117,7 @@ export function OperatingRoomViewer() {
         )}
         {status === "unavailable" && (
           <div
-            className="absolute inset-0 z-20 grid place-items-center bg-[#edf2e8] px-6 dark:bg-[#10261f]"
+            className="absolute inset-0 z-20 grid place-items-center bg-accent px-6 dark:bg-accent"
             role="status"
           >
             <div className="max-w-xs text-center">
@@ -131,19 +131,19 @@ export function OperatingRoomViewer() {
           </div>
         )}
 
-        <div className="absolute inset-x-0 bottom-0 z-30 bg-linear-to-t from-[#edf2e8] via-[#edf2e8]/95 to-transparent p-3 pt-12 sm:p-5 sm:pt-14 dark:from-[#10261f] dark:via-[#10261f]/95">
+        <div className="absolute inset-x-0 bottom-0 z-30 bg-linear-to-t from-background via-card/95 to-transparent p-3 pt-12 sm:p-5 sm:pt-14 dark:from-background dark:via-card/95">
           <div className="mb-2 flex items-center justify-between gap-3 px-1">
-            <span className="inline-flex items-center gap-1.5 text-[10px] text-[#647c69] dark:text-[#9ab59f]">
+            <span className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground dark:text-muted-foreground">
               <Hand className="size-3 shrink-0" />
               {interactive
                 ? "ลากเพื่อหมุน · ใช้ + / − เพื่อซูม"
                 : "เลือกบุคลากรเพื่อดูใกล้ · ใช้ + / − เพื่อซูม"}
             </span>
-            <span className="shrink-0 text-[9px] tracking-widest text-[#7b8c7c] dark:text-[#6d9079]">
+            <span className="shrink-0 text-[9px] tracking-widest text-muted-foreground dark:text-muted-foreground">
               OR / 01
             </span>
           </div>
-          <div className="rounded-2xl border border-white/70 bg-white/85 p-1.5 shadow-lg shadow-[#2c5539]/5 backdrop-blur-xl dark:border-[#41634a]/40 dark:bg-[#11271c]/90">
+          <div className="rounded-2xl border border-border/70 bg-card/90 p-1.5 shadow-lg backdrop-blur-xl dark:border-border dark:bg-card/90">
             <div
               role="group"
               aria-label="เลือกบุคลากรหรือมุมกล้อง"
@@ -156,15 +156,15 @@ export function OperatingRoomViewer() {
                   disabled={!available}
                   aria-pressed={view === item.id}
                   onClick={() => changeView(item.id)}
-                  className={`min-h-9 min-w-0 cursor-pointer rounded-xl px-1.5 text-[10px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-10 sm:text-[11px] ${view === item.id ? "bg-[#1c533b] text-white shadow-sm dark:bg-[#b7d8b2] dark:text-[#142c1c]" : "text-[#526a56] hover:bg-[#e5ede0] dark:text-[#a5c0aa] dark:hover:bg-[#254430]"}`}
+                  className={`min-h-9 min-w-0 cursor-pointer rounded-xl px-1.5 text-[10px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-10 sm:text-[11px] ${view === item.id ? "bg-primary text-white shadow-sm dark:bg-accent dark:text-primary" : "text-primary hover:bg-accent dark:text-primary dark:hover:bg-accent"}`}
                 >
                   {item.label}
                 </button>
               ))}
             </div>
-            <div className="mt-1.5 flex items-center justify-between gap-2 border-t border-[#dce5d6] px-1 pt-1.5 dark:border-[#35513c]">
+            <div className="mt-1.5 flex items-center justify-between gap-2 border-t border-border px-1 pt-1.5 dark:border-border">
               <div className="flex items-center gap-1">
-                <span className="mr-1 text-[10px] font-medium text-[#6b8172] dark:text-[#9bb8a2]">
+                <span className="mr-1 text-[10px] font-medium text-muted-foreground dark:text-muted-foreground">
                   ซูม
                 </span>
                 <button
@@ -196,7 +196,7 @@ export function OperatingRoomViewer() {
                 }
                 aria-pressed={interactive}
                 onClick={() => setInteractive((value) => !value)}
-                className={`inline-flex min-h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2 text-[10px] font-semibold transition focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-40 sm:min-h-9 sm:px-3 ${interactive ? "bg-primary/15 text-primary" : "text-[#526d5b] hover:bg-[#e5ede0] dark:text-[#adcbb4] dark:hover:bg-[#254430]"}`}
+                className={`inline-flex min-h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2 text-[10px] font-semibold transition focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-40 sm:min-h-9 sm:px-3 ${interactive ? "bg-primary/15 text-primary" : "text-primary hover:bg-accent dark:text-primary dark:hover:bg-accent"}`}
               >
                 <Maximize2 className="size-3.5" />
                 <span className="hidden min-[420px]:inline">หมุนดู</span>
@@ -245,15 +245,15 @@ export function OperatingRoomViewer() {
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 text-[10px] text-muted-foreground sm:text-[11px]">
         <div className="flex flex-wrap gap-x-4 gap-y-1.5">
           <span className="flex items-center gap-1.5">
-            <span className="size-1.5 rounded-full bg-[#377d6d]" />
+            <span className="size-1.5 rounded-full bg-accent" />
             ศัลยแพทย์
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="size-1.5 rounded-full bg-[#476f7f]" />
+            <span className="size-1.5 rounded-full bg-accent" />
             วิสัญญีแพทย์
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="size-1.5 rounded-full bg-[#6faba0]" />
+            <span className="size-1.5 rounded-full bg-accent" />
             ทีมพยาบาล
           </span>
         </div>

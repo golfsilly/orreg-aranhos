@@ -24,6 +24,8 @@ const row = (id, roomId, roomName, enter, exit, index) => ({
   emergency_name: index === 2 ? "Emergency" : "Elective", provision_diagnosis: "DEMO-DX", provision_name: "Demo diagnosis", diagnosis_text: "Demo details", wound_names: "Clean wound", surgeryClass: "MAJOR", preOp: true, postOp: false, patho: false, anesthesia: "GA", remark: "",
 });
 const rows = [row(1001, "1", rooms[0].name, [9, 0], [10, 30], 1), row(1002, "1", rooms[0].name, [10, 0], [11, 0], 2), row(1003, "2", rooms[1].name, null, null, 3)];
+rows[2].effectiveOperationStartedAt = null;
+rows[2].effectiveOperationEndedAt = null;
 const yesterday = new Date(`${today}T12:00:00.000Z`);
 yesterday.setUTCDate(yesterday.getUTCDate() - 1);
 const previousDay = yesterday.toISOString().slice(0, 10);
@@ -34,6 +36,10 @@ rows[3].roomExitedAt = new Date(`${today}T00:45:00+07:00`).toISOString();
 rows[3].registerNumber = "4/11";
 rows[2].sourceDepartmentId = "DEMO-DEPT-2";
 rows[2].departmentName = "แผนกจำลอง B";
+const fallback = row(1005, "2", rooms[1].name, null, null, 5);
+fallback.effectiveOperationStartedAt = isoBangkok(12, 0);
+fallback.effectiveOperationEndedAt = isoBangkok(13, 0);
+rows.push(fallback);
 const errors = [];
 let browser;
 const baseURL = process.argv[2] ?? "http://localhost:50004";
@@ -51,6 +57,8 @@ async function runViewport(viewport, theme) {
       return route.fulfill({ json: { operations: rows.filter((operation) => operation.request_operation_date.startsWith(month)), rooms } });
     }
     if (/^\/api\/hosxp\/operations\/\d+\/team$/.test(url.pathname)) return route.fulfill({ json: { team: [] } });
+    if (/^\/api\/hosxp\/operations\/\d+\/anesthesia$/.test(url.pathname)) return route.fulfill({ json: { records: [], assessment: null, staff: [] } });
+    if (/^\/api\/hosxp\/operations\/\d+\/items$/.test(url.pathname)) return route.fulfill({ json: { operations: [] } });
     if (/^\/api\/register\/\d+\/times$/.test(url.pathname)) return route.fulfill({ json: { revision: 0, roomEnteredAt: rows[0].roomEnteredAt, operationStartedAt: rows[0].effectiveOperationStartedAt, operationEndedAt: rows[0].effectiveOperationEndedAt, roomExitedAt: rows[0].roomExitedAt } });
     errors.push(`Unexpected API call; real backend access blocked: ${url.pathname}`);
     return route.abort();
@@ -66,7 +74,9 @@ async function runViewport(viewport, theme) {
     await expect(dayView).toBeVisible();
     await expect(dayView.getByRole("button", { name: /ผู้ป่วยจำลอง 1/ }).first()).toBeVisible();
     await expect(page.getByText("คิวไม่ระบุเวลา").filter({ visible: true }).first()).toBeVisible();
-    await expect(dayView.getByText("เวลาห้องทับซ้อน").filter({ visible: true }).first()).toBeVisible();
+    await expect(dayView.getByLabel("ช่วงเวลาทับซ้อน").first()).toBeVisible();
+    await expect(dayView.getByText("เวลาผ่าตัด").filter({ visible: true }).first()).toBeVisible();
+    await expect(dayView.getByRole("button", { name: /ผู้ป่วยจำลอง 5/ }).first()).toBeVisible();
     await expect(dayView.getByText("ต่อเนื่องถึง 00:45").filter({ visible: true }).first()).toBeVisible();
     await page.screenshot({ path: resolve(artifacts, `initial-${viewport.width}-${theme}.png`), fullPage: true });
     await expect(dayView).not.toContainText("DEMO-HN-1001");

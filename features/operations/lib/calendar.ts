@@ -24,15 +24,40 @@ export function bangkokDateTime(value: unknown) {
 }
 
 export function operationCalendarDate(operation: CalendarOperation) {
-  return bangkokDateTime(operation.roomEnteredAt)?.date
+  return calendarInterval(operation)?.start.date
     ?? (typeof operation.request_operation_date === "string" ? operation.request_operation_date.slice(0, 10) : "");
 }
 
 export function occupancyInterval(operation: CalendarOperation) {
-  const start = bangkokDateTime(operation.roomEnteredAt);
-  const end = bangkokDateTime(operation.roomExitedAt);
-  if (!start || !end || end.timestamp <= start.timestamp) return null;
-  return { start, end };
+  return calendarInterval(operation);
+}
+
+export function calendarInterval(operation: CalendarOperation) {
+  const roomStart = bangkokDateTime(operation.roomEnteredAt);
+  const roomEnd = bangkokDateTime(operation.roomExitedAt);
+  if (roomStart && roomEnd && roomEnd.timestamp > roomStart.timestamp) {
+    return { start: roomStart, end: roomEnd, source: "room" as const };
+  }
+
+  // Room entry/exit is recorded separately in OR-Reg. If it is unavailable,
+  // use surgery start/end so the daily view remains useful and mark it as an
+  // operation interval rather than implying room occupancy.
+  const operationStart = bangkokDateTime(operation.effectiveOperationStartedAt);
+  const operationEnd = bangkokDateTime(operation.effectiveOperationEndedAt);
+  if (operationStart && operationEnd && operationEnd.timestamp > operationStart.timestamp) {
+    return { start: operationStart, end: operationEnd, source: "operation" as const };
+  }
+  return null;
+}
+
+export function calendarStartLabel(operation: CalendarOperation) {
+  const interval = calendarInterval(operation);
+  return interval ? `${String(interval.start.hour).padStart(2, "0")}:${String(interval.start.minute).padStart(2, "0")}` : "—";
+}
+
+export function calendarEndLabel(operation: CalendarOperation) {
+  const interval = calendarInterval(operation);
+  return interval ? `${String(interval.end.hour).padStart(2, "0")}:${String(interval.end.minute).padStart(2, "0")}` : "—";
 }
 
 export function operationOccursOnDate(operation: CalendarOperation, day: string) {
@@ -53,6 +78,25 @@ export function occupancyOnDate(operation: CalendarOperation, day: string) {
     continuesFromPreviousDay,
     continuesIntoNextDay,
   };
+}
+
+export function timelineLanes(operations: CalendarOperation[], day: string, minDisplayMinutes = 64) {
+  const entries = operations.flatMap((operation) => {
+    const slot = occupancyOnDate(operation, day);
+    if (!slot || slot.endMinute <= slot.startMinute) return [];
+    return [{ id: String(operation.operation_id), start: slot.startMinute, end: Math.min(1440, Math.max(slot.endMinute, slot.startMinute + minDisplayMinutes)) }];
+  }).sort((a, b) => a.start - b.start || a.end - b.end || a.id.localeCompare(b.id));
+  const laneEnds: number[] = [];
+  const assignments = new Map<string, { lane: number; count: number }>();
+  for (const entry of entries) {
+    let lane = laneEnds.findIndex((end) => end <= entry.start);
+    if (lane === -1) lane = laneEnds.length;
+    laneEnds[lane] = entry.end;
+    assignments.set(entry.id, { lane, count: 0 });
+  }
+  const count = laneEnds.length;
+  for (const [id, placement] of assignments) assignments.set(id, { ...placement, count });
+  return assignments;
 }
 
 export function overlappingOperationIds(operations: CalendarOperation[]) {

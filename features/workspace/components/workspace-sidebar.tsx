@@ -36,17 +36,17 @@ function SidebarLink({
       onClick={close}
       aria-current={active ? "page" : undefined}
       title={collapsed ? item.label : undefined}
-      className={`group relative flex min-h-10 items-center rounded-xl py-2 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25835a] dark:focus-visible:outline-[#a2e9b8] ${collapsed ? "justify-center px-2" : "gap-3 px-3"} ${active ? "bg-[#e1f1e5] text-[#145b39] dark:bg-[#234733] dark:text-[#d9f8e3]" : "text-[#5a7665] hover:bg-[#eaf3ec] hover:text-[#1b6140] dark:text-[#a9c2b0] dark:hover:bg-white/[0.06] dark:hover:text-[#f0fbf3]"}`}
+      className={`group relative flex min-h-10 items-center rounded-xl py-2 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${collapsed ? "justify-center px-2" : "gap-3 px-3"} ${active ? "bg-primary/10 text-primary dark:bg-primary/15 dark:text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground dark:text-muted-foreground dark:hover:bg-white/[0.06] dark:hover:text-foreground"}`}
     >
       {active && (
         <span
           aria-hidden="true"
-          className="absolute top-2 bottom-2 left-0 w-[3px] rounded-r-full bg-[#248353] dark:bg-[#9be1b0]"
+          className="absolute top-2 bottom-2 left-0 w-[3px] rounded-r-full bg-primary"
         />
       )}
       <Icon
         aria-hidden="true"
-        className={`size-[17px] shrink-0 ${active ? "text-[#248353] dark:text-[#a8eabc]" : "text-[#86a190] dark:text-[#86a590]"}`}
+        className={`size-[17px] shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`}
         strokeWidth={1.8}
       />
       <span className={collapsed ? "sr-only" : "min-w-0 flex-1"}>
@@ -94,11 +94,11 @@ export function WorkspaceSidebar({
 
   return (
     <div
-      className={`relative isolate flex min-h-full flex-col overflow-hidden border-r border-[#dce9df] bg-[#f8fbf8] text-[#183d2c] dark:border-white/[0.08] dark:bg-[#0b1911] dark:text-[#e8f4eb] ${collapsed ? "items-center" : ""}`}
+      className={`relative isolate flex min-h-full flex-col overflow-hidden border-r border-border bg-card text-foreground dark:border-border dark:bg-card ${collapsed ? "items-center" : ""}`}
     >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-32 -right-28 -z-10 size-72 rounded-full bg-[#8bcba2]/15 blur-3xl dark:bg-[#408c60]/10"
+        className="pointer-events-none absolute -top-32 -right-28 -z-10 size-72 rounded-full bg-primary/5 blur-3xl"
       />
       <div
         className={`mt-5 flex w-full items-center ${collapsed ? "flex-col justify-center gap-2 px-2" : "justify-between px-4"}`}
@@ -107,9 +107,9 @@ export function WorkspaceSidebar({
           href="/"
           onClick={close}
           aria-label="ไปหน้าหลัก"
-          className={`group flex min-w-0 items-center rounded-2xl py-2.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25835a] dark:focus-visible:outline-[#a2e9b8] ${collapsed ? "justify-center px-0" : "gap-3 px-2"}`}
+          className={`group flex min-w-0 items-center rounded-2xl py-2.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:focus-visible:outline-ring ${collapsed ? "justify-center px-0" : "gap-3 px-2"}`}
         >
-          <span className="grid size-11 shrink-0 place-items-center rounded-[15px] bg-white p-1 shadow-[0_7px_16px_#1d6d4520]">
+          <span className="grid size-11 shrink-0 place-items-center rounded-[15px] bg-white p-1 shadow-md">
             <Image
               src={BRAND.logoPath}
               alt=""
@@ -119,10 +119,10 @@ export function WorkspaceSidebar({
             />
           </span>
           <span className={collapsed ? "sr-only" : "min-w-0"}>
-            <span className="block text-[15px] leading-none font-extrabold tracking-[0.14em] text-[#12472f] dark:text-[#e7f7eb]">
+            <span className="block text-[15px] leading-none font-extrabold tracking-[0.14em] text-foreground">
               {BRAND.wordmark}
             </span>
-            <span className="mt-1.5 block text-[9px] leading-none font-semibold tracking-[0.18em] text-[#718c7b] dark:text-[#91b49d]">
+            <span className="mt-1.5 block text-[9px] leading-none font-semibold tracking-[0.18em] text-muted-foreground dark:text-muted-foreground">
               OPERATING ROOM WORKSPACE
             </span>
           </span>
@@ -133,7 +133,7 @@ export function WorkspaceSidebar({
             onClick={onToggleCollapsed}
             aria-label={collapsed ? "ขยายแถบเมนู" : "ย่อแถบเมนู"}
             title={collapsed ? "ขยายแถบเมนู" : "ย่อแถบเมนู"}
-            className="grid size-9 shrink-0 place-items-center rounded-xl text-[#6b8975] transition-colors hover:bg-[#e5f1e7] hover:text-[#176c49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25835a] dark:text-[#a8c6b0] dark:hover:bg-white/10 dark:hover:text-[#c9f0d2]"
+            className="grid size-9 shrink-0 place-items-center rounded-xl text-primary transition-colors hover:bg-accent hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-primary dark:hover:bg-white/10 dark:hover:text-primary"
           >
             {collapsed ? (
               <PanelLeftOpen className="size-4" />
@@ -144,7 +144,7 @@ export function WorkspaceSidebar({
         )}
       </div>
 
-      <div className="mx-6 mt-5 h-px bg-gradient-to-r from-[#c7ddcd] via-[#dce9df] to-transparent dark:from-white/15 dark:via-white/5" />
+      <div className="mx-6 mt-5 h-px bg-gradient-to-r from-background via-card to-transparent dark:from-white/15 dark:via-white/5" />
       <nav
         aria-label="เมนูหลัก"
         className={`relative w-full flex-1 pt-7 pb-5 ${collapsed ? "px-2" : "px-4"}`}
@@ -152,12 +152,12 @@ export function WorkspaceSidebar({
         <div
           className={`mb-3 flex items-center justify-between px-2 ${collapsed ? "sr-only" : ""}`}
         >
-          <span className="text-[11px] font-bold text-[#718b7b] dark:text-[#a5c0ad]">
+          <span className="text-[11px] font-bold text-muted-foreground dark:text-muted-foreground">
             ระบบงาน
           </span>
           <span
             aria-hidden="true"
-            className="text-[9px] font-semibold tracking-[0.14em] text-[#a2b6a8] dark:text-[#64836d]"
+            className="text-[9px] font-semibold tracking-[0.14em] text-muted-foreground dark:text-muted-foreground"
           >
             MODULES
           </span>
@@ -192,10 +192,10 @@ export function WorkspaceSidebar({
                   title={module.label}
                   aria-label={module.label}
                   aria-current={active ? "page" : undefined}
-                  className={`group relative grid min-h-[52px] place-items-center rounded-2xl border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25835a] dark:focus-visible:outline-[#a2e9b8] ${active ? "border-[#bdddc5] bg-[#eaf5ec] dark:border-[#39654a] dark:bg-[#183528]" : "border-transparent hover:border-[#d7e8db] hover:bg-white/80 dark:hover:border-white/[0.08] dark:hover:bg-white/[0.07]"}`}
+                  className={`group relative grid min-h-[52px] place-items-center rounded-2xl border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:focus-visible:outline-ring ${active ? "border-primary/20 bg-primary/5 dark:border-primary/20 dark:bg-primary/10" : "border-transparent hover:border-border hover:bg-white/80 dark:hover:border-white/[0.08] dark:hover:bg-white/[0.07]"}`}
                 >
                   <ModuleIcon
-                    className={`size-[19px] ${active ? "text-[#248353] dark:text-[#a8eabc]" : "text-[#86a190] dark:text-[#86a590]"}`}
+                    className={`size-[19px] ${active ? "text-primary" : "text-muted-foreground"}`}
                     strokeWidth={1.8}
                   />
                 </Link>
@@ -214,26 +214,26 @@ export function WorkspaceSidebar({
               return (
                 <Accordion.Item key={module.id} value={module.id}>
                   <Accordion.Header>
-                    <Accordion.Trigger className="group flex min-h-[60px] w-full items-center gap-3 rounded-2xl border border-[#d7e8db] bg-white/80 px-3 py-2 text-left shadow-[0_4px_14px_#1d6d4508] transition-colors hover:border-[#bdddc5] hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25835a] data-[panel-open]:border-[#bdddc5] data-[panel-open]:bg-[#eaf5ec] dark:border-white/[0.08] dark:bg-white/[0.04] dark:hover:bg-white/[0.07] dark:focus-visible:outline-[#a2e9b8] dark:data-[panel-open]:border-[#39654a] dark:data-[panel-open]:bg-[#183528]">
-                      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#176c49] text-[#e5f9ea] shadow-[0_4px_12px_#176c4924] dark:bg-[#b8ecc7] dark:text-[#12452a]">
+                    <Accordion.Trigger className="group flex min-h-[60px] w-full items-center gap-3 rounded-2xl border border-border bg-white/80 px-3 py-2 text-left shadow-md transition-colors hover:border-border hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring data-[panel-open]:border-border data-[panel-open]:bg-accent dark:border-white/[0.08] dark:bg-white/[0.04] dark:hover:bg-white/[0.07] dark:focus-visible:outline-ring dark:data-[panel-open]:border-border dark:data-[panel-open]:bg-accent">
+                      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm dark:bg-primary/15 dark:text-primary">
                         <ModuleIcon className="size-[19px]" strokeWidth={1.8} />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[13px] font-bold text-[#194b31] dark:text-[#e0f4e5]">
+                        <span className="block text-[13px] font-bold text-foreground dark:text-primary">
                           {module.label}
                         </span>
-                        <span className="mt-0.5 block text-[9px] font-semibold tracking-[0.11em] text-[#829f8b] dark:text-[#8fae99]">
+                        <span className="mt-0.5 block text-[9px] font-semibold tracking-[0.11em] text-muted-foreground dark:text-muted-foreground">
                           {module.subtitle}
                         </span>
                       </span>
                       <ChevronDown
                         aria-hidden="true"
-                        className="size-4 shrink-0 text-[#6a9477] transition-transform duration-200 group-data-[panel-open]:rotate-180 dark:text-[#a1cdb0]"
+                        className="size-4 shrink-0 text-primary transition-transform duration-200 group-data-[panel-open]:rotate-180 dark:text-primary"
                       />
                     </Accordion.Trigger>
                   </Accordion.Header>
                   <Accordion.Panel className="overflow-hidden">
-                    <div className="mt-2 ml-5 space-y-1 border-l border-[#d3e6d7] pl-3 dark:border-[#365745]">
+                    <div className="mt-2 ml-5 space-y-1 border-l border-border pl-3 dark:border-border">
                       {module.items.map((item) => (
                         <SidebarLink
                           key={item.href}
@@ -254,12 +254,12 @@ export function WorkspaceSidebar({
             <div
               className={`mb-3 flex items-center justify-between px-2 ${collapsed ? "sr-only" : ""}`}
             >
-              <span className="text-[11px] font-bold text-[#718b7b] dark:text-[#a5c0ad]">
+              <span className="text-[11px] font-bold text-muted-foreground dark:text-muted-foreground">
                 บัญชีและระบบ
               </span>
               <span
                 aria-hidden="true"
-                className="text-[9px] font-semibold tracking-[0.14em] text-[#a2b6a8] dark:text-[#64836d]"
+                className="text-[9px] font-semibold tracking-[0.14em] text-muted-foreground dark:text-muted-foreground"
               >
                 ACCOUNT
               </span>

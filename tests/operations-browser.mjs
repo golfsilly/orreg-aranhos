@@ -19,7 +19,7 @@ const rows = Array.from({ length: 26 }, (_, index) => ({
   operation_id: 9001 + index, hn: index < 2 ? "DEMO-SAME-HN" : `DEMO-HN-${index}`, ptname: `ผู้ป่วยจำลอง ${index + 1}`, effectiveAge: "30 ปี", sourceAge: "30 ปี", ward_name: "Ward จำลอง", request_operation_date: day,
   sourceDepartmentId: index < 24 ? "DEMO-A" : "DEMO-B", departmentName: index < 24 ? "แผนกจำลอง A" : "แผนกจำลอง B",
   registerNumber: `${index < 24 ? index + 1 : index - 23}/${Number(month.slice(5))}`, needsDateSync: false,
-  room_name: "ห้องจำลอง 1", emergency_name: "Elective", effectiveOperationStartedAt: `${day} 09:30:00`, effectiveOperationEndedAt: `${day} 10:30:00`, sourceOperationStartedAt: `${day} 09:00:00`, sourceOperationEndedAt: `${day} 10:00:00`, operationStartedAtEdited: index === 0, operationEndedAtEdited: index === 0,
+  room_name: "ห้องจำลอง 1", emergency_name: "Elective", effectiveOperationStartedAt: `${day} 09:30:00`, effectiveOperationEndedAt: `${day} 10:30:00`, sourceOperationStartedAt: `${day} 09:00:00`, sourceOperationEndedAt: `${day} 10:00:00`, operationStartedAtEdited: index === 23, operationEndedAtEdited: index === 23,
   provision_diagnosis: "DEMO-DX", provision_name: "วินิจฉัยจำลอง", diagnosis_text: "ข้อมูลจำลองสำหรับทดสอบ", wound_names: "Clean wound", surgeryClass: "MAJOR", preOp: true, postOp: false, patho: false, anesthesia: "GA", remark: "ข้อมูลจำลอง",
 }));
 // Same staff/position can participate in several operation items. Older API
@@ -47,6 +47,8 @@ async function verify(viewport, theme) {
     const request = route.request(); const url = new URL(request.url()); apiCalls.push(`${request.method()} ${url.pathname}`);
     if (url.pathname === "/api/hosxp/operations") return route.fulfill({ json: { operations: rows } });
     if (/^\/api\/hosxp\/operations\/\d+\/team$/.test(url.pathname)) return route.fulfill({ json: { team: teamRows } });
+    if (/^\/api\/hosxp\/operations\/\d+\/anesthesia$/.test(url.pathname)) return route.fulfill({ json: { records: [], assessment: null, staff: [] } });
+    if (/^\/api\/hosxp\/operations\/\d+\/items$/.test(url.pathname)) return route.fulfill({ json: { operations: [] } });
     if (/^\/api\/register\/\d+\/times$/.test(url.pathname)) return route.fulfill({ json: { revision: 0, roomEnteredAt: null, operationStartedAt: null, operationEndedAt: null, roomExitedAt: null } });
     if (url.pathname === "/api/hosxp/sync/month") { await syncGate; return route.fulfill({ json: { created: 0, renumbered: 0, dateUpdated: 0, departmentUpdated: 0, existing: 26 } }); }
     errors.push(`Unexpected API call; real backend access blocked: ${url.pathname}`);
@@ -68,7 +70,11 @@ async function verify(viewport, theme) {
   async function checkOverflow() { expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true); }
 
   try {
-    await page.goto(`${baseURL}/or-reg-register-ui-check`, { waitUntil: "domcontentloaded" });
+    let response = await page.goto(`${baseURL}/or-reg-register-ui-check`, { waitUntil: "domcontentloaded" });
+    if (response?.status() === 404) {
+      await page.waitForTimeout(2000);
+      response = await page.reload({ waitUntil: "domcontentloaded" });
+    }
     await page.getByRole("button", { name: /แผนกจำลอง A/ }).click();
     await expect(visibleRows()).toHaveCount(10);
     await checkHeaders(false); await checkOverflow();
@@ -77,7 +83,7 @@ async function verify(viewport, theme) {
     await page.getByLabel("จำนวนรายการต่อหน้า").selectOption("20"); await expect(visibleRows()).toHaveCount(20);
     await page.getByLabel("จำนวนรายการต่อหน้า").selectOption("50"); await expect(visibleRows()).toHaveCount(24);
     await page.getByLabel("จำนวนรายการต่อหน้า").selectOption("10");
-    await page.getByRole("button", { name: "หน้าถัดไป", exact: true }).click(); await expect(visibleRows().first()).toContainText(`11/${Number(month.slice(5))}`);
+    await page.getByRole("button", { name: "หน้าถัดไป", exact: true }).click(); await expect(visibleRows().first()).toContainText(`14/${Number(month.slice(5))}`);
     await openColumns(); await page.getByRole("checkbox", { name: "รหัส HOSxP", exact: true }).check(); await openColumns();
     await checkHeaders(false, true);
     const search = page.getByRole("textbox", { name: "ค้นหาทะเบียนผ่าตัด" });
@@ -85,18 +91,19 @@ async function verify(viewport, theme) {
     await search.fill(""); await expect(visibleRows()).toHaveCount(10);
     await openColumns(); await page.getByRole("button", { name: "คืนค่าเริ่มต้น", exact: true }).click(); await openColumns();
     await checkHeaders(false);
-    await visibleRows().first().getByRole("button", { name: "ดู / แก้ไข", exact: true }).click();
+    await visibleRows().first().getByRole("button", { name: "ดูและแก้ไขทะเบียน", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "รายละเอียดทะเบียนผ่าตัด" })).toBeVisible();
-    await expect(page.getByRole("dialog")).toContainText("9001");
+    await expect(page.getByRole("dialog")).toContainText("9024");
+    await page.getByRole("tab", { name: "ทีมผ่าตัด" }).click();
     const teamSection = page.getByRole("dialog").getByRole("region", { name: "ตารางทีมผ่าตัดและเวลาเข้าออกห้องผ่าตัด" });
-    if (mobile) await expect(page.getByRole("dialog").locator("article:visible")).toHaveCount(teamRows.length);
+    if (mobile) await expect(page.getByRole("dialog").getByRole("region", { name: "ทีมผ่าตัด" }).locator("article:visible")).toHaveCount(teamRows.length);
     else await expect(teamSection.locator("tbody tr")).toHaveCount(teamRows.length);
     await page.getByRole("button", { name: "แก้เวลา", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "แก้ไขเวลา", exact: true })).toBeVisible();
     await expect(page.getByRole("dialog").getByRole("textbox", { name: "เวลาเริ่มผ่าตัด (เวลา)", exact: true })).toHaveValue("09:00");
     await expect(page.getByRole("dialog").getByText("อายุที่แก้ไข", { exact: false })).toHaveCount(0);
     await expect(page.getByRole("dialog").getByRole("group", { name: "ช่วงเวลาผ่าตัด", exact: true })).toBeVisible();
-    await expect(page.getByRole("dialog").getByRole("group", { name: "ช่วงเวลาใช้ห้องผ่าตัด", exact: true })).toBeVisible();
+    await expect(page.getByRole("dialog").getByRole("group", { name: "ช่วงเวลาใช้ห้องผ่าตัด", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "ปิดหน้าต่าง", exact: true }).click();
     await page.getByRole("button", { name: "ปิดหน้าต่าง", exact: true }).click();
     await page.screenshot({ path: resolve(artifacts, `monthly-${viewport.width}-${theme}.png`), fullPage: true });

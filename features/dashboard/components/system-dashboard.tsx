@@ -25,7 +25,7 @@ export function SystemDashboard({
 
   return (
     <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-[28px] border border-[#d9e8dc] bg-gradient-to-br from-[#f2f8f3] via-card to-card p-6 shadow-[0_14px_45px_#163e2810] dark:border-[#254b35] dark:from-[#14291d] sm:p-9">
+      <section className="relative overflow-hidden rounded-[28px] border border-border bg-gradient-to-br from-background via-card to-card p-6 shadow-md dark:border-border dark:from-background sm:p-9">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -top-24 -right-16 size-72 rounded-full bg-primary/10 blur-3xl"
@@ -76,10 +76,10 @@ export function SystemDashboard({
               return (
                 <article
                   key={module.id}
-                  className="group relative overflow-hidden rounded-[22px] border border-border bg-card p-5 shadow-[0_6px_24px_#11271a08] transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_14px_34px_#11271a12] sm:p-6"
+                  className="group relative overflow-hidden rounded-[22px] border border-border bg-card p-5 shadow-md transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md sm:p-6"
                 >
                   <div className="flex items-start gap-4">
-                    <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-[0_8px_20px_#176c4925]">
+                    <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-md">
                       <Icon className="size-5" strokeWidth={1.8} />
                     </span>
                     <div className="min-w-0 flex-1">

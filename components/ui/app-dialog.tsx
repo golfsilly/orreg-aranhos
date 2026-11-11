@@ -33,7 +33,7 @@ export function AppDialog({
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-[3px] transition-opacity duration-200 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
         <Dialog.Popup
           className={[
-            "fixed top-1/2 left-1/2 z-50 flex max-h-[min(92dvh,960px)] w-[calc(100%-1rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden border border-border/80 bg-card text-card-foreground shadow-[0_36px_100px_-35px_#071b12a6] outline-none transition-[opacity,transform] duration-200 data-[ending-style]:scale-[0.985] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.985] data-[starting-style]:opacity-0 sm:w-[calc(100%-2rem)]",
+            "fixed top-1/2 left-1/2 z-50 flex max-h-[min(92dvh,960px)] w-[calc(100%-1rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden border border-border/80 bg-card text-card-foreground shadow-2xl shadow-black/15 outline-none transition-[opacity,transform] duration-200 data-[ending-style]:scale-[0.985] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.985] data-[starting-style]:opacity-0 sm:w-[calc(100%-2rem)] dark:shadow-black/40",
             isWide
               ? "max-w-5xl rounded-[26px] sm:rounded-[30px]"
               : "max-w-2xl rounded-[22px]",

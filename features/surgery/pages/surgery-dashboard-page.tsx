@@ -1,16 +1,13 @@
 import { redirect } from "next/navigation";
 import { getAuthorizedUser } from "@/lib/authorization";
-import { prisma } from "@/lib/prisma";
-import { currentFiscalPeriod } from "@/lib/register/fiscal-period";
-import { DashboardOverview } from "@/features/dashboard/components/dashboard-overview";
+import { hasPermission } from "@/lib/permissions";
+import { AnalyticsHeader } from "@/features/reports/components/analytics-header";
+import { SurgeryStatistics } from "@/features/reports/components/surgery-statistics";
 
 export default async function SurgeryDashboardPage() {
   const user = await getAuthorizedUser("dashboard:read");
   if (!user) redirect("/signin");
-  const period = currentFiscalPeriod();
-  const [total, months] = await Promise.all([
-    prisma.surgeryRegister.count(),
-    prisma.surgeryRegister.groupBy({ by: ["calendarMonth"], where: { fiscalYear: period.fiscalYear }, _count: { _all: true } }),
-  ]);
-  return <DashboardOverview user={{ name: user.name, role: user.role }} period={period} total={total} months={months.map((entry) => ({ month: entry.calendarMonth, count: entry._count._all }))} />;
+  const initialDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const canReadRegisters = hasPermission(user.role, "register:read");
+  return <div className="space-y-6"><AnalyticsHeader overview canReadRegisters={canReadRegisters} /><SurgeryStatistics overview initialDay={initialDay} canReadRegisters={canReadRegisters} /></div>;
 }

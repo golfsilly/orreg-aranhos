@@ -91,16 +91,15 @@ function oneOperationMessage(row: HosxpOperation) {
     : "ไม่ระบุ";
 
   return [
-    "🟨 SURGIS / OR NOTIFICATION",
-    "🔔 แจ้งเตือนเคสผ่าตัดใหม่",
+    "🟨 OR-REG NOTIFICATION",
     `${thaiDate(orderDay)} · ${time(orderClock)} น.`,
-    "━━━━━━━━━━━━━━━━━━",
+    "",
     "🩺 หัตถการ / OPERATION",
     operation || "ยังไม่ระบุ",
     "",
     "📅 วันที่ผ่าตัด",
     `${thaiDate(surgeryDay)}   ·   เวลา ${timeLabel}`,
-    "━━━━━━━━━━━━━━━━━━",
+    "",
     "👤 ข้อมูลผู้ป่วย",
     `HN              ${field(row, ["hn"])}`,
     `ชื่อ-สกุล       ${field(row, ["patient_name", "fullname"])}`,
@@ -111,13 +110,10 @@ function oneOperationMessage(row: HosxpOperation) {
     `หน่วยงาน       ${field(row, ["ward_name"])}`,
     `การวินิจฉัย   ${diagnosis || "-"}`,
     `เวลา NPO       ${npo}`,
-    `น้ำหนัก          ${weight === "-" ? "-" : `${weight} กก.`}`,
-    `ส่วนสูง          ${height === "-" ? "-" : `${height} ซม.`}`,
+    // `น้ำหนัก          ${weight === "-" ? "-" : `${weight} กก.`}`,
+    // `ส่วนสูง          ${height === "-" ? "-" : `${height} ซม.`}`,
     `แพทย์             ${field(row, ["request_doctor_name"])}`,
     `ดมยาสลบ       ${anesthesiaLabel}`,
-    "",
-    "──────────────────",
-    "🛡 OR-Reg · Hospital Internal Notification",
   ]
     .join("\n")
     .slice(0, 3500);

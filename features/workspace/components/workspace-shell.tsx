@@ -28,7 +28,7 @@ export function WorkspaceShell({
         onBlurCapture={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setSidebarHovered(false);
         }}
-        className={`fixed inset-y-0 left-0 z-30 hidden overflow-y-auto transition-[width] duration-300 ease-out lg:block ${sidebarExpanded ? "w-[272px] shadow-[12px_0_32px_#10291a0b]" : "w-[72px]"}`}
+        className={`fixed inset-y-0 left-0 z-30 hidden overflow-y-auto transition-[width] duration-300 ease-out lg:block ${sidebarExpanded ? "w-[272px] shadow-md" : "w-[72px]"}`}
       >
         <WorkspaceSidebar
           user={user}

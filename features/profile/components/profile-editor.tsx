@@ -64,24 +64,24 @@ export function ProfileEditor({ user, work, hasCredential, initialAvatar, initia
       <span className="inline-flex min-h-9 items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3.5 text-xs font-semibold text-primary"><ShieldCheck className="size-4" />ข้อมูลบัญชีส่วนบุคคล</span>
     </header>
 
-    <section className="relative isolate overflow-hidden rounded-[28px] border border-emerald-900/20 bg-[#123d30] px-5 py-6 text-white shadow-[0_18px_45px_-28px_#0b3b2c] sm:px-8 sm:py-8 lg:px-10">
-      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_85%_5%,#c9a96836,transparent_32%),radial-gradient(ellipse_at_10%_110%,#38a77a38,transparent_44%),linear-gradient(125deg,#123d30,#102e25_60%,#173d30)]" />
+    <section className="relative isolate overflow-hidden rounded-[28px] border border-primary/20 bg-primary px-5 py-6 text-primary-foreground shadow-md sm:px-8 sm:py-8 lg:px-10 dark:border-border dark:bg-card dark:text-card-foreground">
+      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_85%_5%,color-mix(in_oklab,var(--primary)_16%,transparent),transparent_34%)] dark:bg-[radial-gradient(ellipse_at_85%_5%,color-mix(in_oklab,var(--primary)_8%,transparent),transparent_34%)]" />
       <div aria-hidden="true" className="absolute right-[-54px] top-[-110px] -z-10 size-72 rounded-full border border-white/10 lg:right-14 lg:top-[-180px] lg:size-[440px]" />
       <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-7">
-        <div className="relative w-fit rounded-[25px] bg-white/10 p-1.5 shadow-xl ring-1 ring-white/20"><ProfileAvatar name={user.name} className="size-24 rounded-[21px] border border-white/20 text-3xl sm:size-28" /><span className="absolute -bottom-2 -right-2 grid size-8 place-items-center rounded-xl border-2 border-[#123d30] bg-[#c9a968] text-[#18372c] shadow"><BadgeCheck aria-hidden="true" className="size-4" /></span></div>
+        <div className="relative w-fit rounded-[25px] bg-white/10 p-1.5 shadow-xl ring-1 ring-white/20"><ProfileAvatar name={user.name} className="size-24 rounded-[21px] border border-white/20 text-3xl sm:size-28" /><span className="absolute -bottom-2 -right-2 grid size-8 place-items-center rounded-xl border-2 border-border bg-accent text-primary shadow"><BadgeCheck aria-hidden="true" className="size-4" /></span></div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold tracking-[0.2em] text-emerald-100/70">OR-REG · บัญชีผู้ใช้งาน</p>
+          <p className="text-[10px] font-bold tracking-[0.2em] text-primary-foreground/70 dark:text-muted-foreground">OR-REG · บัญชีผู้ใช้งาน</p>
           <h2 className="mt-1 break-words text-2xl font-semibold tracking-tight sm:text-3xl">{user.name}</h2>
-          <div className="mt-3 flex flex-wrap items-center gap-2.5 text-sm text-emerald-50/85">
-            <span className="inline-flex min-w-0 items-center gap-2 break-all"><Mail aria-hidden="true" className="size-4 shrink-0 text-[#d8c28b]" />{user.email}</span>
+          <div className="mt-3 flex flex-wrap items-center gap-2.5 text-sm text-primary-foreground/85 dark:text-card-foreground">
+            <span className="inline-flex min-w-0 items-center gap-2 break-all"><Mail aria-hidden="true" className="size-4 shrink-0 text-primary-foreground/80 dark:text-primary" />{user.email}</span>
             <span className="hidden text-white/30 sm:inline">·</span>
-            <span className="inline-flex min-w-0 items-center gap-2"><UserRound aria-hidden="true" className="size-4 shrink-0 text-[#d8c28b]" />{user.username || "ยังไม่ตั้งชื่อผู้ใช้"}</span>
+            <span className="inline-flex min-w-0 items-center gap-2"><UserRound aria-hidden="true" className="size-4 shrink-0 text-primary-foreground/80 dark:text-primary" />{user.username || "ยังไม่ตั้งชื่อผู้ใช้"}</span>
           </div>
-          <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#d8c28b]/35 bg-[#d8c28b]/12 px-3.5 py-1.5 text-xs font-semibold text-[#f1dfae]"><ShieldCheck aria-hidden="true" className="size-4" />{roleLabels[user.role]}</span>
+          <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-border/35 bg-accent/12 px-3.5 py-1.5 text-xs font-semibold text-primary"><ShieldCheck aria-hidden="true" className="size-4" />{roleLabels[user.role]}</span>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:w-56 sm:grid-cols-1">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-3.5 py-3"><span className="block text-[10px] font-medium text-emerald-100/65">สถานะบัญชี</span><span className="mt-1 flex items-center gap-2 text-sm font-semibold"><span className="size-2 rounded-full bg-emerald-300 shadow-[0_0_10px_#86efac]" />ใช้งานปกติ</span></div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-3.5 py-3"><span className="block text-[10px] font-medium text-emerald-100/65">ลายเซ็น</span><span className="mt-1 text-sm font-semibold">{hasSignature ? "บันทึกแล้ว" : "ยังไม่ได้บันทึก"}</span></div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-3.5 py-3"><span className="block text-[10px] font-medium text-primary-foreground/65 dark:text-muted-foreground">สถานะบัญชี</span><span className="mt-1 flex items-center gap-2 text-sm font-semibold"><span className="size-2 rounded-full bg-emerald-300 shadow-md" />ใช้งานปกติ</span></div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-3.5 py-3"><span className="block text-[10px] font-medium text-primary-foreground/65 dark:text-muted-foreground">ลายเซ็น</span><span className="mt-1 text-sm font-semibold">{hasSignature ? "บันทึกแล้ว" : "ยังไม่ได้บันทึก"}</span></div>
         </div>
       </div>
     </section>
@@ -92,7 +92,7 @@ export function ProfileEditor({ user, work, hasCredential, initialAvatar, initia
       <section className="min-w-0 overflow-hidden rounded-[24px] border border-border bg-card shadow-sm">
         <div className="border-b border-border/80 px-5 py-5 sm:px-7"><SectionHeading icon={ImagePlus} eyebrow="PROFILE IMAGE" title="รูปโปรไฟล์" description="ภาพที่แสดงแทนตัวคุณในเมนูและรายการผู้ใช้งาน" /></div>
         <div className="p-5 sm:p-7">
-          <div className="flex flex-col items-center rounded-[20px] border border-dashed border-primary/20 bg-gradient-to-br from-primary/[0.06] via-transparent to-[#c9a968]/[0.06] px-4 py-7 text-center">
+          <div className="flex flex-col items-center rounded-[20px] border border-dashed border-primary/20 bg-gradient-to-br from-primary/[0.06] via-transparent to-card/[0.06] px-4 py-7 text-center">
             <div className="rounded-[25px] bg-card p-1.5 shadow-lg ring-1 ring-border"><ProfileAvatar name={user.name} className="size-28 rounded-[20px] text-3xl" /></div>
             <p className="mt-4 max-w-full break-words text-lg font-semibold">{user.name}</p><p className="mt-1 max-w-full break-all text-xs text-muted-foreground">{user.email}</p>
             <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-secondary-foreground"><ShieldCheck className="size-3.5" />{roleLabels[user.role]}</span>

@@ -29,7 +29,7 @@ export function OperationsSkeleton() {
       <Skeleton className="size-11 shrink-0 rounded-2xl sm:size-12" />
       <div className="min-w-0 flex-1 space-y-2"><Skeleton className="h-3 w-56 max-w-full" /><Skeleton className="h-9 w-48" /><div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><Skeleton className="h-5 w-96 max-w-full" /><Skeleton className="h-8 w-44 rounded-full" /></div></div>
     </div>
-    <div className="mb-4 flex gap-1 rounded-xl border border-border bg-muted/50 p-1 sm:mb-5 sm:w-fit"><Skeleton className="h-11 w-40 flex-1 rounded-lg sm:w-[188px] sm:flex-none" /><Skeleton className="h-11 w-40 flex-1 rounded-lg sm:w-[188px] sm:flex-none" /></div>
+    <div className="mb-4 grid w-full grid-cols-2 gap-2 rounded-2xl border border-border bg-card p-2 shadow-sm sm:mb-5 sm:w-fit sm:min-w-[420px]"><Skeleton className="h-[62px] w-full rounded-xl sm:w-[198px]" /><Skeleton className="h-[62px] w-full rounded-xl sm:w-[198px]" /></div>
     <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:p-5 md:flex-row md:items-center md:justify-between"><div className="space-y-2"><Skeleton className="h-6 w-44" /><Skeleton className="h-5 w-72 max-w-full" /></div><div className="flex flex-wrap gap-2"><div><Skeleton className="mb-1 h-3 w-12" /><Skeleton className="h-11 w-36 rounded-xl" /></div><div><Skeleton className="mb-1 h-3 w-24" /><Skeleton className="h-11 w-32 rounded-xl" /></div></div></div>
     <MonthlyRegisterSkeleton />
   </LoadingRegion>;
@@ -44,7 +44,7 @@ export function OperationTableSkeleton() {
 
 export function MonthlyRegisterSkeleton() {
   return <LoadingRegion label="กำลังโหลดทะเบียนผ่าตัดรายเดือน" className="mt-6 space-y-5">
-    <div className="mx-auto w-full max-w-5xl rounded-2xl border border-border bg-card p-3 sm:p-3.5"><Skeleton className="h-4 w-24" /><Skeleton className="mt-2 h-3 w-40" /><div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-3 xl:grid-cols-4">{Array.from({ length: 8 }, (_, index) => <Skeleton key={index} className="h-12 rounded-lg sm:h-[52px]" />)}</div></div>
+    <div className="w-full rounded-2xl border border-border bg-card p-3 sm:p-4"><Skeleton className="h-4 w-24" /><Skeleton className="mt-2 h-3 w-40" /><div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-2">{Array.from({ length: 10 }, (_, index) => <Skeleton key={index} className="h-11 rounded-xl" />)}</div></div>
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="rounded-2xl border border-border p-4"><Skeleton className="h-3 w-20" /><Skeleton className="mt-3 h-7 w-16" /></div>)}</div>
     <div className="flex flex-col gap-3 rounded-2xl border border-border p-4 sm:flex-row sm:items-center sm:justify-between"><div><Skeleton className="h-4 w-52" /><Skeleton className="mt-2 h-3 w-72 max-w-full" /></div><Skeleton className="h-10 w-44 rounded-xl" /></div>
     <SearchFiltersSkeleton />

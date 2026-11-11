@@ -23,7 +23,7 @@ export function OperationsPageHeader() {
                 ทะเบียนผ่าตัด
               </h1>
               <p className="mb-0 mt-1 text-sm leading-6 text-muted-foreground">
-                เลือกแผนกและเดือน เพื่อดูเลขทะเบียนกับข้อมูลการผ่าตัด
+                ค้นหารายวัน หรือเปิดทะเบียนรายเดือนแยกตามแผนก
               </p>
             </div>
             <span className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground">

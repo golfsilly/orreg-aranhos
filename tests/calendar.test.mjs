@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   bangkokDateTime,
+  calendarInterval,
   calendarMonths,
   occupancyOnDate,
   occupancyInterval,
@@ -9,6 +10,7 @@ import {
   operationOccursOnDate,
   overlappingOperationIds,
   shiftDate,
+  timelineLanes,
   visibleCalendarDays,
 } from "../features/operations/lib/calendar.ts";
 
@@ -38,6 +40,39 @@ test("missing room times are unscheduled and cannot create false overlaps", () =
   assert.deepEqual([...overlappingOperationIds([noTime])], []);
 });
 
+test("calendar falls back to surgery start/end when room entry and exit are missing", () => {
+  const operation = {
+    operation_id: 2,
+    request_operation_date: "2026-11-08",
+    roomEnteredAt: null,
+    roomExitedAt: null,
+    effectiveOperationStartedAt: "2026-11-08T02:00:00.000Z",
+    effectiveOperationEndedAt: "2026-11-08T03:15:00.000Z",
+  };
+  assert.equal(calendarInterval(operation)?.source, "operation");
+  assert.equal(calendarInterval(operation)?.start.hour, 9);
+  assert.equal(calendarInterval(operation)?.end.minute, 15);
+  assert.equal(operationOccursOnDate(operation, "2026-11-08"), true);
+  assert.deepEqual(occupancyOnDate(operation, "2026-11-08"), {
+    interval: calendarInterval(operation), startMinute: 540, endMinute: 615,
+    continuesFromPreviousDay: false, continuesIntoNextDay: false,
+  });
+});
+
+test("room occupancy interval takes precedence over the surgery interval", () => {
+  const operation = {
+    operation_id: 3,
+    request_operation_date: "2026-11-08",
+    roomEnteredAt: "2026-11-08T01:00:00.000Z",
+    roomExitedAt: "2026-11-08T04:00:00.000Z",
+    effectiveOperationStartedAt: "2026-11-08T02:00:00.000Z",
+    effectiveOperationEndedAt: "2026-11-08T03:00:00.000Z",
+  };
+  assert.equal(calendarInterval(operation)?.source, "room");
+  assert.equal(calendarInterval(operation)?.start.hour, 8);
+  assert.equal(calendarInterval(operation)?.end.hour, 11);
+});
+
 test("overlaps are detected only within the same room", () => {
   const operations = [
     { operation_id: 1, sourceRoomId: "OR1", roomEnteredAt: "2026-11-08T01:00:00.000Z", roomExitedAt: "2026-11-08T03:00:00.000Z" },
@@ -45,6 +80,19 @@ test("overlaps are detected only within the same room", () => {
     { operation_id: 3, sourceRoomId: "OR2", roomEnteredAt: "2026-11-08T02:00:00.000Z", roomExitedAt: "2026-11-08T04:00:00.000Z" },
   ];
   assert.deepEqual([...overlappingOperationIds(operations)].sort(), ["1", "2"]);
+});
+
+test("calendar places concurrent or visually crowded operations in separate lanes", () => {
+  const operations = [
+    { operation_id: 1, roomEnteredAt: "2026-11-08T02:00:00.000Z", roomExitedAt: "2026-11-08T03:00:00.000Z" },
+    { operation_id: 2, roomEnteredAt: "2026-11-08T02:30:00.000Z", roomExitedAt: "2026-11-08T03:30:00.000Z" },
+    { operation_id: 3, roomEnteredAt: "2026-11-08T03:40:00.000Z", roomExitedAt: "2026-11-08T04:00:00.000Z" },
+  ];
+  const lanes = timelineLanes(operations, "2026-11-08");
+  assert.equal(lanes.get("1")?.lane, 0);
+  assert.equal(lanes.get("2")?.lane, 1);
+  assert.equal(lanes.get("1")?.count, 2);
+  assert.equal(lanes.get("3")?.lane, 0);
 });
 
 test("week navigation crosses month boundaries and month view includes each date once", () => {

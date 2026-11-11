@@ -30,7 +30,7 @@ export function HomeHero() {
         <motion.h1
           {...reveal}
           transition={{ duration: 0.6, delay: 0.06 }}
-          className="mb-0 mt-6 max-w-xl text-[clamp(2.35rem,5vw,4.25rem)] leading-[1.18] font-semibold tracking-[-0.055em]"
+          className="mb-0 mt-6 max-w-xl text-[clamp(2.35rem,5vw,4.25rem)] leading-[1.4] font-semibold tracking-[-0.02em]"
         >
           ทุกการผ่าตัด
           <br />
