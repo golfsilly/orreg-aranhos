@@ -3,6 +3,7 @@ import { headers as requestHeaders } from "next/headers";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { recordDenied } from "@/lib/audit/denied";
+import { hasTrustedRequestOrigin } from "@/lib/security/request-origin";
 import { writeAudit } from "@/lib/audit/write";
 import { passwordSchema } from "@/lib/password-policy";
 import { prisma } from "@/lib/prisma";
@@ -10,7 +11,7 @@ import { prisma } from "@/lib/prisma";
 const headers = { "Cache-Control": "private, no-store" };
 export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: await requestHeaders() });
-  if (!session || request.headers.get("origin") !== new URL(request.url).origin) { await recordDenied("AUTH_PASSWORD_CHANGE", session?.user.id); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
+  if (!session || !hasTrustedRequestOrigin(request)) { await recordDenied("AUTH_PASSWORD_CHANGE", session?.user.id); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
   let body: unknown;
   try { body = await request.json(); } catch { await writeAudit(prisma, { actorId: session.user.id, event: "AUTH_PASSWORD_CHANGE", outcome: "FAILURE", metadata: { reason: "INVALID_INPUT" } }); return Response.json({ error: "Invalid request" }, { status: 400, headers }); }
   const parsed = z.object({ currentPassword: z.string().max(128), newPassword: passwordSchema }).strict().safeParse(body);

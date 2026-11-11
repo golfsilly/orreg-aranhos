@@ -3,6 +3,7 @@ import { recordDenied } from "@/lib/audit/denied";
 import { writeAudit } from "@/lib/audit/write";
 import { prisma } from "@/lib/prisma";
 import { normalizeProfileImage, readLimitedBody, type ProfileAssetKind } from "@/lib/profile/image";
+import { hasTrustedRequestOrigin } from "@/lib/security/request-origin";
 
 const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
 type Context = { params: Promise<{ kind: string }> };
@@ -27,7 +28,7 @@ async function mutate(request: Request, context: Context, remove: boolean) {
   const kind = parseKind((await context.params).kind);
   if (!kind) return Response.json({ error: "Not found" }, { status: 404, headers });
   const user = await getAuthorizedUser("dashboard:read");
-  if (!user || request.headers.get("origin") !== new URL(request.url).origin) {
+  if (!user || !hasTrustedRequestOrigin(request)) {
     await recordDenied("PROFILE_ASSET_UPDATED", user?.id);
     return Response.json({ error: "Forbidden" }, { status: 403, headers });
   }
