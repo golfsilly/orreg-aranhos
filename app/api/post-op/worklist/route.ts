@@ -2,12 +2,13 @@ import { getAuthorizedUser } from "@/lib/authorization";
 import { recordDenied } from "@/lib/audit/denied";
 import { writeAudit } from "@/lib/audit/write";
 import { prisma } from "@/lib/prisma";
+import { hasTrustedRequestOrigin } from "@/lib/security/request-origin";
 
 const headers = { "Cache-Control": "private, no-store" };
 
 export async function POST(request: Request) {
   const user = await getAuthorizedUser("postop:write");
-  if (!user || request.headers.get("origin") !== new URL(request.url).origin) { await recordDenied("POSTOP_FOLLOWUP_TASKS_GENERATED", user?.id); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
+  if (!user || !hasTrustedRequestOrigin(request)) { await recordDenied("POSTOP_FOLLOWUP_TASKS_GENERATED", user?.id); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
   const cases = await prisma.surgeryRegister.findMany({ where: { postoperativeRecord: { isNot: null } }, orderBy: { operationDate: "asc" }, take: 5000, select: { id: true, operationDate: true, hosxpOperationId: true, implantsUsed: { select: { id: true } }, followupTasks: { take: 1, select: { id: true } } } });
   const candidates = cases.filter((item) => item.followupTasks.length === 0);
   const templates = await prisma.postoperativeSsiTemplate.findMany({ where: { isActive: true, scopeType: { in: ["DEFAULT", "IMPLANT"] } }, include: { rounds: { where: { isActive: true }, orderBy: { dayOffset: "asc" } } } });

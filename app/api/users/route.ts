@@ -10,6 +10,7 @@ import { recordDenied } from "@/lib/audit/denied";
 import { passwordSchema } from "@/lib/password-policy";
 import { workFieldsSchema } from "@/lib/user-profile";
 import { listQuerySchema, listUsers, userListSelect } from "@/lib/users/list";
+import { hasTrustedRequestOrigin } from "@/lib/security/request-origin";
 
 const headers = { "Cache-Control": "private, no-store" };
 export async function GET(request: Request) {
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const user = await getAuthorizedUser("users:manage");
-  if (!user || request.headers.get("origin") !== new URL(request.url).origin) { await recordDenied("USER_CREATED", user?.id); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
+  if (!user || !hasTrustedRequestOrigin(request)) { await recordDenied("USER_CREATED", user?.id); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
   const failure = async (reason: "INVALID_INPUT" | "CONFLICT" | "UNAVAILABLE") => writeAudit(prisma, { actorId: user.id, event: "USER_CREATED", outcome: "FAILURE", metadata: { reason } });
   let body: unknown;
   try { body = await request.json(); } catch { await failure("INVALID_INPUT"); return Response.json({ error: "Invalid request" }, { status: 400, headers }); }

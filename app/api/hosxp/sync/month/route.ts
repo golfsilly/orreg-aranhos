@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { fiscalPeriod } from "@/lib/register/fiscal-period";
 import { syncHosxpDay } from "@/lib/register/sync";
 import { writeAudit } from "@/lib/audit/write";
+import { hasTrustedRequestOrigin } from "@/lib/security/request-origin";
 
 const requestSchema = z.object({ month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/) });
 const headers = { "Cache-Control": "private, no-store" };
@@ -16,6 +17,10 @@ export async function POST(request: Request) {
   if (!user) {
     await recordDenied("HOSXP_SYNC");
     return Response.json({ error: "Forbidden" }, { status: 403, headers });
+  }
+  if (!hasTrustedRequestOrigin(request)) {
+    await recordDenied("HOSXP_SYNC", user.id);
+    return Response.json({ error: "Invalid origin" }, { status: 403, headers });
   }
 
   let month: string;

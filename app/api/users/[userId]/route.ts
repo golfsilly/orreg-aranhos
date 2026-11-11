@@ -8,13 +8,14 @@ import { writeAudit } from "@/lib/audit/write";
 import { recordDenied } from "@/lib/audit/denied";
 import { passwordSchema } from "@/lib/password-policy";
 import { workFieldNames, workFieldsSchema } from "@/lib/user-profile";
+import { hasTrustedRequestOrigin } from "@/lib/security/request-origin";
 
 const headers = { "Cache-Control": "private, no-store" };
 type Context = { params: Promise<{ userId: string }> };
 
 export async function PATCH(request: Request, { params }: Context) {
   const user = await getAuthorizedUser("users:manage");
-  if (!user || request.headers.get("origin") !== new URL(request.url).origin) { await recordDenied("USER_UPDATED", user?.id); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
+  if (!user || !hasTrustedRequestOrigin(request)) { await recordDenied("USER_UPDATED", user?.id); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
   const failure = async (reason: "INVALID_INPUT" | "CONFLICT" | "NOT_FOUND" | "UNAVAILABLE") => writeAudit(prisma, { actorId: user.id, event: "USER_UPDATED", outcome: "FAILURE", metadata: { reason } });
   const { userId } = await params;
   if (!userId || userId.length > 191) { await failure("INVALID_INPUT"); return Response.json({ error: "Invalid user" }, { status: 400, headers }); }
@@ -70,7 +71,7 @@ export async function PATCH(request: Request, { params }: Context) {
 async function setDeleted(request: Request, { params }: Context, restore: boolean) {
   const event = restore ? "USER_RESTORED" : "USER_DELETED";
   const actor = await getAuthorizedUser("users:manage");
-  if (!actor || request.headers.get("origin") !== new URL(request.url).origin) { await recordDenied(event, actor?.id); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
+  if (!actor || !hasTrustedRequestOrigin(request)) { await recordDenied(event, actor?.id); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
   const { userId } = await params;
   if (!userId || userId.length > 191) { await writeAudit(prisma, { actorId: actor.id, event, outcome: "FAILURE", metadata: { reason: "INVALID_INPUT" } }); return Response.json({ error: "Invalid user" }, { status: 400, headers }); }
   const result = await prisma.$transaction(async (tx) => {

@@ -5,6 +5,7 @@ import { writeAudit } from "@/lib/audit/write";
 import { getHosxpOperationsForDateRange } from "@/lib/hosxp/operations";
 import { normalizeOperationId } from "@/lib/hosxp/operation-id";
 import { prisma } from "@/lib/prisma";
+import { hasTrustedRequestOrigin } from "@/lib/security/request-origin";
 
 const headers = { "Cache-Control": "private, no-store" };
 const pageSizeSchema = z.coerce.number().int().min(10).max(50).default(10);
@@ -100,7 +101,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const user = await getAuthorizedUser("postop:write");
-  if (!user || request.headers.get("origin") !== new URL(request.url).origin) { await recordDenied("POSTOP_RECORD_UPDATED", user?.id); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
+  if (!user || !hasTrustedRequestOrigin(request)) { await recordDenied("POSTOP_RECORD_UPDATED", user?.id); return Response.json({ error: "Forbidden" }, { status: 403, headers }); }
   let body: unknown;
   try { body = await request.json(); } catch { return Response.json({ error: "Invalid request" }, { status: 400, headers }); }
   const parsed = input.safeParse(body);
