@@ -10,7 +10,7 @@ import "server-only";
 import { sendSetOrMessages } from "./set-or-message";
 
 const JOB = "SET_OR_NEW_OPERATION";
-const INTERVAL_MS = 5 * 60_000;
+const INTERVAL_MS = 2 * 60_000;
 
 type SchedulerState = { timer?: NodeJS.Timeout; running?: boolean };
 const globalScheduler = globalThis as typeof globalThis & {

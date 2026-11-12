@@ -386,25 +386,35 @@ async function getHosxpOperationRequestRows(
   const screenFields: Array<[string, string, string[]]> = [
     ["operation_screen", "preop_npo_date", ["npodatetime", "npodate"]],
     ["operation_screen", "preop_npo_time", ["npotime"]],
-    ["operation_screen", "preop_height", ["height", "ht", "heightcm", "patientheight"]],
-    ["operation_screen_in", "screen_weight", ["bw", "weight", "bodyweight", "patientweight"]],
+    ["operation_screen", "preop_on_call", ["oncall", "oncallflag", "oncallstatus", "isoncall", "operationoncall"]],
+    ["operation_screen_in", "screen_note", ["note", "remark", "operationnote", "operationremark", "screenremark", "preopnote"]],
   ];
   const screenSelect = screenFields.flatMap(([table, alias, candidates]) => {
-    const columns = availableColumns(table === "operation_screen" ? preopColumnRows : screenColumnRows);
+    const columns = availableColumns(
+      table === "operation_screen"
+        ? preopColumnRows
+        : screenColumnRows,
+    );
     const column = columns.find((name) => candidates.includes(normalized(name)));
     return column && /^[A-Za-z0-9_$]+$/.test(column)
       ? [`${table === "operation_screen" ? "preop" : "screen"}.\`${column}\` AS \`${alias}\``]
       : [];
   });
   const selectScreenFields = screenSelect.length ? `${screenSelect.join(", ")},` : "";
-
   return readOnlyQuery(
-    `SELECT ${selectScreenFields} o.*, DATE_FORMAT(o.request_date, '%Y-%m-%d') AS request_day,
+    `SELECT ${selectScreenFields}
+            opd.bw AS opdscreen_weight,
+            opd.height AS opdscreen_height,
+            o.*,
+            DATE_FORMAT(o.request_date, '%Y-%m-%d') AS request_day,
             DATE_FORMAT(CONCAT(o.request_date, ' ', COALESCE(o.request_time, '00:00:00')), '%Y-%m-%d %H:%i:%s') AS request_timestamp,
             CONCAT(pt.pname, pt.fname, ' ', pt.lname) AS patient_name,
             w.NAME AS ward_name, d.NAME AS request_doctor_name,
+            sp.NAME AS department_name,
             otn.operation_time_type_name,
-            items.operation_names
+            items.operation_names,
+            items.operation_started_at,
+            items.operation_ended_at
      FROM operation_list o
        LEFT JOIN patient pt ON pt.hn = o.hn
        LEFT JOIN operation_screen preop ON preop.operation_id = o.operation_id
@@ -412,10 +422,20 @@ async function getHosxpOperationRequestRows(
        LEFT JOIN doctor d ON d.CODE = o.request_doctor
        LEFT JOIN (SELECT an, MIN(ward) AS ward FROM ipt GROUP BY an) t ON t.an = o.an
        LEFT JOIN ward w ON w.ward = t.ward
+       LEFT JOIN spclty sp ON sp.spclty = o.spclty
        LEFT JOIN operation_time_type otn ON otn.operation_time_type_id = o.operation_time_type_id
+       LEFT JOIN opdscreen opd ON opd.vn = o.vn
        LEFT JOIN (
          SELECT od.operation_id,
-                GROUP_CONCAT(DISTINCT oi.NAME ORDER BY od.operation_detail_id SEPARATOR ', ') AS operation_names
+                GROUP_CONCAT(DISTINCT oi.NAME ORDER BY od.operation_detail_id SEPARATOR '\\n') AS operation_names,
+                COALESCE(
+                  MIN(CASE WHEN TIME(od.begin_datetime) <> '00:00:00' THEN od.begin_datetime END),
+                  MIN(od.begin_datetime)
+                ) AS operation_started_at,
+                COALESCE(
+                  MAX(CASE WHEN TIME(od.end_datetime) <> '00:00:00' THEN od.end_datetime END),
+                  MAX(od.end_datetime)
+                ) AS operation_ended_at
          FROM operation_detail od
            LEFT JOIN operation_item oi ON oi.operation_item_id = od.operation_item_id
          GROUP BY od.operation_id

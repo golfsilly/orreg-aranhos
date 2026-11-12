@@ -20,7 +20,9 @@ export async function GET(request: Request) {
   if (!parsed.success) { await writeAudit(prisma, { actorId: actor.id, event: "USERS_READ", outcome: "FAILURE", metadata: { reason: "INVALID_INPUT" } }); return Response.json({ error: "Invalid query" }, { status: 400, headers }); }
   const result = await listUsers(parsed.data);
   await writeAudit(prisma, { actorId: actor.id, event: "USERS_READ", outcome: "SUCCESS", metadata: { total: result.users.length } });
-  return Response.json(result, { headers });
+  const avatarAssets = result.users.length ? await prisma.userProfileAssets.findMany({ where: { userId: { in: result.users.map((user) => user.id) }, avatar: { not: null } }, select: { userId: true } }) : [];
+  const avatarUserIds = new Set(avatarAssets.map((asset) => asset.userId));
+  return Response.json({ ...result, users: result.users.map((user) => ({ ...user, hasAvatar: avatarUserIds.has(user.id) })) }, { headers });
 }
 
 export async function POST(request: Request) {

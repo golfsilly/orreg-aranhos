@@ -4,6 +4,7 @@ import { AppDialog } from "@/components/ui/app-dialog";
 import { ResponsiveScroll } from "@/components/ui/responsive-scroll";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WorkFields } from "@/features/shared/components/work-fields";
+import { UserAvatar } from "@/features/users/components/user-avatar";
 import {
   MAX_PASSWORD_LENGTH,
   MIN_PASSWORD_LENGTH,
@@ -49,6 +50,7 @@ type User = {
   jobTitle: string | null;
   jobLevel: string | null;
   createdAt: string;
+  hasAvatar?: boolean;
 };
 type Result = { users: User[]; total: number; page: number; pageSize: number };
 const roleLabels: Record<UserRole, string> = {
@@ -99,7 +101,6 @@ const field =
   "mt-2 block h-11 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-sm font-normal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 const button =
   "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 text-sm font-semibold transition hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50";
-const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((part) => part.slice(0, 1)).join("") || "U";
 
 export function UserManager({
   isSuperadmin,
@@ -319,7 +320,7 @@ export function UserManager({
               <p className="mt-5 text-xs text-muted-foreground">พบ {total.toLocaleString("th-TH")} บัญชี <span className="md:hidden">· แสดงเป็นรายการเพื่อใช้งานบนมือถือ</span></p>
               <div className="mt-3 grid gap-3 sm:hidden">
                 {users.data?.users.map((user) => <article key={user.id} className="min-w-0 rounded-2xl border border-border bg-card p-4 shadow-sm">
-                  <div className="flex items-start gap-3"><span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary/15 to-card/20 text-sm font-bold text-primary ring-1 ring-primary/10">{initials(user.name)}</span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-start justify-between gap-2"><div className="min-w-0"><h3 className="break-words text-sm font-semibold">{user.name}</h3><p className="mt-0.5 break-all text-xs text-muted-foreground">{user.username ? `@${user.username}` : user.email}</p></div><span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${user.deletedAt ? "bg-muted text-muted-foreground" : user.isActive ? "bg-primary/10 text-primary" : "bg-amber-500/10 text-amber-800 dark:text-amber-300"}`}><span className={`size-1.5 rounded-full ${user.deletedAt ? "bg-muted-foreground/60" : user.isActive ? "bg-primary" : "bg-amber-500"}`} />{user.deletedAt ? "ลบแล้ว" : user.isActive ? "ใช้งาน" : "ระงับ"}</span></div><p className="mt-2 flex min-w-0 items-start gap-1.5 break-all text-xs text-muted-foreground"><span className="mt-0.5 text-primary"><CircleUserRound aria-hidden="true" className="size-3.5" /></span>{user.email}</p></div></div>
+                  <div className="flex items-start gap-3"><UserAvatar userId={user.id} hasAvatar={Boolean(user.hasAvatar)} className="size-11 rounded-2xl ring-1 ring-primary/10" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-start justify-between gap-2"><div className="min-w-0"><h3 className="break-words text-sm font-semibold">{user.name}</h3><p className="mt-0.5 break-all text-xs text-muted-foreground">{user.username ? `@${user.username}` : user.email}</p></div><span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${user.deletedAt ? "bg-muted text-muted-foreground" : user.isActive ? "bg-primary/10 text-primary" : "bg-amber-500/10 text-amber-800 dark:text-amber-300"}`}><span className={`size-1.5 rounded-full ${user.deletedAt ? "bg-muted-foreground/60" : user.isActive ? "bg-primary" : "bg-amber-500"}`} />{user.deletedAt ? "ลบแล้ว" : user.isActive ? "ใช้งาน" : "ระงับ"}</span></div><p className="mt-2 flex min-w-0 items-start gap-1.5 break-all text-xs text-muted-foreground"><span className="mt-0.5 text-primary"><CircleUserRound aria-hidden="true" className="size-3.5" /></span>{user.email}</p></div></div>
                   <div className="mt-4 grid grid-cols-2 gap-2"><div className="min-w-0 rounded-xl bg-muted/50 px-3 py-2.5"><span className="block text-[10px] text-muted-foreground">หน่วยงาน</span><span className="mt-1 block truncate text-xs font-medium">{[user.organization, user.mission, user.workGroup].filter(Boolean).join(" · ") || "ยังไม่ระบุ"}</span></div><div className="min-w-0 rounded-xl bg-muted/50 px-3 py-2.5"><span className="block text-[10px] text-muted-foreground">ตำแหน่ง / บทบาท</span><span className="mt-1 block truncate text-xs font-medium">{[user.jobTitle, user.jobLevel].filter(Boolean).join(" · ") || roleLabels[user.role]}</span></div></div>
                   <div className="mt-3 flex items-center justify-between gap-3"><span className="rounded-full border border-primary/15 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary">{roleLabels[user.role]}</span><div className="flex min-w-0 flex-1 gap-2">{userActions(user, true)}</div></div>
                 </article>)}
@@ -329,7 +330,7 @@ export function UserManager({
                   <table className="w-full min-w-[1080px] border-separate border-spacing-0 text-left text-sm">
                     <thead><tr>{["บัญชีผู้ใช้", "องค์กร / ภารกิจ / กลุ่มงาน", "ตำแหน่ง / ระดับ", "บทบาท", "สถานะ", "จัดการ"].map((label) => <th key={label} className="sticky top-0 border-b border-border bg-muted/60 px-4 py-3.5 text-[11px] font-bold tracking-wide text-muted-foreground first:rounded-tl-xl last:rounded-tr-xl">{label}</th>)}</tr></thead>
                     <tbody>{table.getRowModel().rows.map(({ original: user }) => <tr key={user.id} className="group transition hover:bg-primary/[0.035]">
-                      <td className="border-b border-border/70 px-4 py-3.5"><div className="flex items-center gap-3"><span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary/15 to-card/20 text-xs font-bold text-primary ring-1 ring-primary/10">{initials(user.name)}</span><div className="min-w-0"><strong className="block max-w-[240px] truncate text-sm font-semibold">{user.name}</strong><span className="mt-0.5 block max-w-[240px] truncate text-xs text-muted-foreground">{user.username ? `@${user.username}` : user.email}</span></div></div></td>
+                      <td className="border-b border-border/70 px-4 py-3.5"><div className="flex items-center gap-3"><UserAvatar userId={user.id} hasAvatar={Boolean(user.hasAvatar)} className="size-10 rounded-xl ring-1 ring-primary/10" /><div className="min-w-0"><strong className="block max-w-[240px] truncate text-sm font-semibold">{user.name}</strong><span className="mt-0.5 block max-w-[240px] truncate text-xs text-muted-foreground">{user.username ? `@${user.username}` : user.email}</span></div></div></td>
                       <td className="max-w-[290px] border-b border-border/70 px-4 py-3.5"><span className="block truncate text-sm">{[user.organization, user.mission, user.workGroup].filter(Boolean).join(" / ") || "—"}</span></td>
                       <td className="max-w-[230px] border-b border-border/70 px-4 py-3.5"><span className="block truncate text-sm">{[user.jobTitle, user.jobLevel].filter(Boolean).join(" / ") || "—"}</span></td>
                       <td className="border-b border-border/70 px-4 py-3.5"><span className="inline-flex rounded-full border border-primary/15 bg-primary/5 px-2.5 py-1 text-xs font-semibold text-primary">{roleLabels[user.role]}</span></td>
@@ -478,7 +479,7 @@ export function UserManager({
             : "บัญชีนี้จะเข้าสู่ระบบไม่ได้ ระบบจะยกเลิก session แต่เก็บประวัติและทะเบียนที่เกี่ยวข้องไว้"
         }
       >
-        {action?.user && <div className={`mt-1 flex items-center gap-3 rounded-2xl border p-4 ${action.restore ? "border-primary/15 bg-primary/[0.04]" : "border-destructive/20 bg-destructive/[0.04]"}`}><span aria-hidden="true" className={`grid size-11 shrink-0 place-items-center rounded-xl text-sm font-bold ${action.restore ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>{initials(action.user.name)}</span><div className="min-w-0"><p className="break-words text-sm font-semibold">{action.user.name}</p><p className="mt-0.5 break-all text-xs text-muted-foreground">{action.user.email}</p><span className="mt-2 inline-flex rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">{roleLabels[action.user.role]}</span></div></div>}
+        {action?.user && <div className={`mt-1 flex items-center gap-3 rounded-2xl border p-4 ${action.restore ? "border-primary/15 bg-primary/[0.04]" : "border-destructive/20 bg-destructive/[0.04]"}`}><UserAvatar userId={action.user.id} hasAvatar={Boolean(action.user.hasAvatar)} className="size-11 rounded-xl ring-1 ring-primary/10" /><div className="min-w-0"><p className="break-words text-sm font-semibold">{action.user.name}</p><p className="mt-0.5 break-all text-xs text-muted-foreground">{action.user.email}</p><span className="mt-2 inline-flex rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">{roleLabels[action.user.role]}</span></div></div>}
         {error && (
           <p role="alert" className="mt-4 text-sm text-destructive">
             {error}
