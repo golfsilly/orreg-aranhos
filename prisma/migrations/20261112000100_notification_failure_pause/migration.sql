@@ -2,10 +2,10 @@ ALTER TABLE `SurgeryNotificationCursor`
   ADD COLUMN `paused` BOOLEAN NOT NULL DEFAULT false,
   ADD COLUMN `lastErrorCode` VARCHAR(64) NULL;
 
-UPDATE `SurgeryNotificationCursor` AS cursor
+UPDATE `SurgeryNotificationCursor`
 SET `paused` = true,
     `lastErrorCode` = 'LEGACY_FAILURE_REVIEW'
-WHERE cursor.`job` = 'SET_OR_NEW_OPERATION'
+WHERE `job` = 'SET_OR_NEW_OPERATION'
   AND EXISTS (
     SELECT 1
     FROM `AuditLog` AS latest_failure

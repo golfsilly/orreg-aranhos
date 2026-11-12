@@ -11,6 +11,8 @@
     "build": "next build",
     "start": "next start -p 50004",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/test.mjs",
     "test:register": "node --test tests/register-columns.test.mjs tests/register-sync.test.mjs tests/hosxp-operation-query.test.mjs tests/operation-team.test.mjs tests/register-times.test.mjs tests/register-age-source.test.mjs",
     "test:calendar": "node --test tests/calendar.test.mjs tests/hosxp-operation-query.test.mjs",
     "test:register:browser": "node tests/operations-browser.mjs",
@@ -57,7 +59,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.65.0",
-    "@tailwindcss/turbopack": "^4",
+    "@tailwindcss/postcss": "^4.3.5",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.2",
     "@types/pdfkit": "^0.17.7",

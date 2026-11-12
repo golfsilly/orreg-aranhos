@@ -24,6 +24,7 @@ export const env = createEnv({
     MOPH_NOTIFY_API_URL: z.url().default("https://morpromt2f.moph.go.th/api/notify/send"),
     MOPH_NOTIFY_GROUP_CLIENT_KEY: z.string().min(1).optional(),
     MOPH_NOTIFY_GROUP_SECRET_KEY: z.string().min(1).optional(),
+    MOPH_NOTIFY_SCHEDULER_ENABLED: z.stringbool().optional(),
     MOPH_NOTIFY_ORREG_LOGO_URL: z.url().refine((value) => new URL(value).protocol === "https:", "MOPH_NOTIFY_ORREG_LOGO_URL must use https://").optional(),
     SMTP_HOST: z.string().min(1).optional(),
     SMTP_PORT: z.coerce.number().int().min(1).max(65535).optional(),

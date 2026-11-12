@@ -11,14 +11,6 @@ const nextConfig: NextConfig = {
     "/api/reports/yearly/pdf": ["./assets/fonts/sarabun/*.ttf"],
   },
   partialPrefetching: true,
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
-  },
 };
 
 export default nextConfig;

@@ -7,6 +7,7 @@ test("enforces the requested role matrix and denies unknown roles", () => {
   const matrix = {
     SUPERADMIN: [true, true, true, true, true],
     ADMIN: [true, true, false, false, false],
+    DOCTOR: [true, false, true, false, false],
     NURSE: [true, false, true, true, false],
     USER: [true, false, false, false, false],
     UNKNOWN: [false, false, false, false, false],

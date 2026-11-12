@@ -1,26 +1,9 @@
 import { BRAND } from "@/lib/brand";
 import "server-only";
+import { assertSetOrResponse, SetOrNotificationError } from "./set-or-response";
+export { SetOrNotificationError, type SetOrNotificationErrorCode } from "./set-or-response";
 
 type HosxpOperation = Record<string, unknown>;
-
-export type SetOrNotificationErrorCode =
-  | "NETWORK_OR_TIMEOUT"
-  | "HTTP_CLIENT_ERROR"
-  | "HTTP_SERVER_ERROR"
-  | "MOPH_UNAUTHORIZED"
-  | "MOPH_INVALID_MESSAGE"
-  | "MOPH_SEND_ERROR"
-  | "MOPH_MISSING_MESSAGES"
-  | "MOPH_REJECTED_401"
-  | "MOPH_INVALID_RESPONSE"
-  | "UNEXPECTED_SEND_ERROR";
-
-export class SetOrNotificationError extends Error {
-  constructor(readonly code: SetOrNotificationErrorCode, readonly httpStatus?: number) {
-    super("MOPH_NOTIFY_FAILED");
-    this.name = "SetOrNotificationError";
-  }
-}
 
 const valueText = (value: unknown) =>
   typeof value === "string" || typeof value === "number"
@@ -410,26 +393,6 @@ export async function sendSetOrMessages(rows: HosxpOperation[]) {
     throw new SetOrNotificationError("NETWORK_OR_TIMEOUT");
   }
 
-  const result = (await response.json().catch(() => null)) as {
-    message_code?: number | string;
-    message?: string;
-  } | null;
-  if (!response.ok) {
-    throw new SetOrNotificationError(
-      response.status >= 500 ? "HTTP_SERVER_ERROR" : "HTTP_CLIENT_ERROR",
-      response.status,
-    );
-  }
-  if (Number(result?.message_code) !== 200) {
-    const code = Number(result?.message_code);
-    const responseMessage = typeof result?.message === "string" ? result.message : "";
-    const errorCode = code === 401
-      ? responseMessage === "Unauthorized" ? "MOPH_UNAUTHORIZED"
-        : responseMessage === "messages error" ? "MOPH_INVALID_MESSAGE"
-          : responseMessage === "Send messages error" ? "MOPH_SEND_ERROR"
-            : responseMessage === "require messages" ? "MOPH_MISSING_MESSAGES"
-              : "MOPH_REJECTED_401"
-      : "MOPH_INVALID_RESPONSE";
-    throw new SetOrNotificationError(errorCode, response.ok ? undefined : response.status);
-  }
+  const result: unknown = await response.json().catch(() => null);
+  assertSetOrResponse(result, response.status);
 }

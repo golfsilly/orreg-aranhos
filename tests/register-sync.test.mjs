@@ -107,6 +107,7 @@ test("monthly endpoint orders shuffled source days before allocating numeric sou
   const processed = [];
   const dependencies = {
     zod: nodeRequire("zod"),
+    "@/lib/security/request-origin": { hasTrustedRequestOrigin: (request) => request.headers.get("origin") === "http://localhost" },
     "@/lib/authorization": { getAuthorizedUser: async () => ({ id: "DEMO-ACTOR" }) },
     "@/lib/audit/denied": { recordDenied: async () => { throw new Error("Unexpected denial"); } },
     "@/lib/hosxp/date-range": { monthRange },
@@ -119,7 +120,7 @@ test("monthly endpoint orders shuffled source days before allocating numeric sou
   const output = ts.transpileModule(readFileSync(new URL("../app/api/hosxp/sync/month/route.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   const route = { exports: {} };
   new Function("require", "exports", "module", output)((id) => { if (!(id in dependencies)) throw new Error(`Unexpected dependency: ${id}`); return dependencies[id]; }, route.exports, route);
-  const response = await route.exports.POST(new Request("http://localhost/api/hosxp/sync/month", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ month: "2026-11" }) }));
+  const response = await route.exports.POST(new Request("http://localhost/api/hosxp/sync/month", { method: "POST", headers: { "Content-Type": "application/json", Origin: "http://localhost" }, body: JSON.stringify({ month: "2026-11" }) }));
   assert.equal(response.status, 200);
   assert.equal((await response.json()).created, 4);
   assert.deepEqual(processed, ["2026-11-01", "2026-11-07"]);

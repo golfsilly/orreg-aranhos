@@ -84,11 +84,13 @@ export const auditMetadataSchema = z
         "MOPH_SEND_ERROR",
         "MOPH_MISSING_MESSAGES",
         "MOPH_REJECTED_401",
+        "MOPH_REJECTED_RESPONSE",
         "MOPH_INVALID_RESPONSE",
         "UNEXPECTED_SEND_ERROR",
       ])
       .optional(),
     httpStatus: z.number().int().min(100).max(599).optional(),
+    notificationResponseCode: z.number().int().min(100).max(599).optional(),
     actionType: z
       .enum(["CREATE", "UPDATE", "RECORD", "ISSUE", "RETURN", "RESOLVE"])
       .optional(),
@@ -129,6 +131,8 @@ export const auditEvents = [
   "HOSXP_ANESTHESIA_READ",
   "HOSXP_SET_OR_NOTIFICATION_READ",
   "HOSXP_SET_OR_NOTIFICATION_SENT",
+  "HOSXP_SET_OR_NOTIFICATION_CLAIMED",
+  "HOSXP_SET_OR_NOTIFICATION_CHECKPOINT",
   "REGISTER_TIMES_READ",
   "REGISTER_DETAILS_READ",
   "REGISTER_HISTORY_READ",

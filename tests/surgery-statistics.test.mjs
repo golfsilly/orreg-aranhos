@@ -45,14 +45,14 @@ function fixture({ available = true, authorized = true } = {}) {
   return { get: (params = "") => loaded.exports.GET(new Request("http://localhost/api/reports/statistics?period=day&value=2026-11-07" + params)), audits, queried: () => queried };
 }
 
-test("management statistics deduplicate joins, respect overrides and retain all doctors", async () => {
+test("management statistics deduplicate joins, use HOSxP times instead of legacy overrides and retain all doctors", async () => {
   const run = fixture();
   const response = await run.get();
   assert.equal(response.status, 200);
   const data = statisticsResponseSchema.parse(await response.json());
   assert.equal(data.totalCases, 3);
   assert.equal(data.sourceCases, 2);
-  assert.equal(data.averageDurationMinutes, 60);
+  assert.equal(data.averageDurationMinutes, 120);
   assert.equal(data.durationCases, 2);
   assert.equal(data.doctors.length, 12);
   assert.equal(data.doctors[0].cases, 1);
@@ -63,7 +63,7 @@ test("management statistics deduplicate joins, respect overrides and retain all 
   assert.equal(data.quality.missingDoctor, 2);
   assert.equal(data.quality.missingDuration, 1);
   assert.equal(data.missingUtilizationTimes, 1);
-  assert.equal(data.utilization.usedMinutes, 90, "overnight time is clipped to selected day");
+  assert.equal(data.utilization.usedMinutes, 210, "three source hours plus the overnight half hour within the selected day");
   assert.doesNotMatch(JSON.stringify(run.audits), /แพทย์|Ward|หัตถการ|hosxpOperationId/);
 });
 
@@ -78,14 +78,14 @@ test("department filter applies to counts, doctors and room time but retains all
   assert.equal(data.quality.missingDoctor, 1);
 });
 
-test("source outage preserves stored counts and times without inventing source statistics", async () => {
+test("source outage preserves stored counts without reviving legacy time overrides", async () => {
   const data = statisticsResponseSchema.parse(await (await fixture({ available: false }).get()).json());
   assert.equal(data.hosxpAvailable, false);
   assert.equal(data.totalCases, 3);
   assert.equal(data.sourceCases, 0);
   assert.equal(data.utilization, null);
-  assert.equal(data.averageDurationMinutes, 60);
-  assert.equal(data.durationCases, 1);
+  assert.equal(data.averageDurationMinutes, null);
+  assert.equal(data.durationCases, 0);
   assert.equal(data.missingUtilizationTimes, 3);
 });
 

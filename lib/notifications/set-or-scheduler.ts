@@ -17,6 +17,18 @@ const globalScheduler = globalThis as typeof globalThis & {
   setOrNotificationScheduler?: SchedulerState;
 };
 
+function safeErrorCode(error: unknown) {
+  if (!error || typeof error !== "object") return "UNKNOWN";
+  const value = error as { code?: unknown; name?: unknown };
+  if (typeof value.code === "string" && /^P\d{4}$/.test(value.code))
+    return value.code;
+  if (typeof value.code === "string" && /^ER_[A-Z0-9_]+$/.test(value.code))
+    return value.code;
+  if (value.name === "PrismaClientValidationError") return "PRISMA_VALIDATION";
+  if (value.name === "DriverAdapterError") return "DATABASE_DRIVER";
+  return "UNKNOWN";
+}
+
 function sqlDateTime(date: Date) {
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Bangkok",
@@ -50,7 +62,8 @@ async function auditRead(total: number, outcome: "SUCCESS" | "FAILURE") {
   });
 }
 
-async function runCheck() {
+export async function runSetOrNotificationCheck() {
+  if (!(env.MOPH_NOTIFY_SCHEDULER_ENABLED ?? (env.NODE_ENV === "production"))) return;
   if (!env.MOPH_NOTIFY_GROUP_CLIENT_KEY || !env.MOPH_NOTIFY_GROUP_SECRET_KEY)
     return;
 
@@ -60,8 +73,10 @@ async function runCheck() {
   if (!cursor) {
     // Avoid blasting historical operations when notifications are enabled for
     // the first time. The scheduler starts watching after the current maximum.
-    await prisma.surgeryNotificationCursor.create({
-      data: {
+    await prisma.surgeryNotificationCursor.upsert({
+      where: { job: JOB },
+      update: {},
+      create: {
         job: JOB,
         requestAt: sqlDateTime(new Date()),
         operationId: await getHosxpMaxOperationId(),
@@ -112,21 +127,72 @@ async function runCheck() {
     return;
   }
 
+  // Joins must never create a second message for the same HOSxP operation.
+  rows = [...new Map(rows.map((row) => {
+    const id = String(row.operation_id ?? "");
+    if (!/^[1-9]\d*$/.test(id)) throw new Error("Invalid notification operation key");
+    return [id, row] as const;
+  })).values()].sort((a, b) => BigInt(String(a.operation_id)) < BigInt(String(b.operation_id)) ? -1 : 1);
   if (!rows.length) return;
+  await auditRead(rows.length, "SUCCESS");
 
-  try {
-    await sendSetOrMessages(rows);
-  } catch (error) {
+  // A committed database claim protects separate Node processes as well as restarts.
+  // No automatic expiry: a crash after delivery must not permit another send.
+  const claimed = await prisma.$transaction(async (tx) => {
+    const result = await tx.surgeryNotificationCursor.updateMany({
+      where: { job: JOB, paused: false, operationId: cursor.operationId },
+      data: { paused: true, lastErrorCode: "SEND_IN_PROGRESS" },
+    });
+    if (result.count) await writeAudit(tx, {
+      event: "HOSXP_SET_OR_NOTIFICATION_CLAIMED", outcome: "SUCCESS",
+      metadata: { total: rows.length, section: "NOTIFICATION" },
+    });
+    return result.count === 1;
+  });
+  if (!claimed) return;
+
+  for (const row of rows) {
+    const operationId = String(row.operation_id);
+    const key = { job_operationId: { job: JOB, operationId } };
+    const delivery = await prisma.surgeryNotificationDelivery.findUnique({ where: key });
+    if (delivery && delivery.status !== "SENT") {
+      // CLAIMED/REVIEW could already have reached MOPH; never retry blindly.
+      await prisma.$transaction(async (tx) => {
+        await tx.surgeryNotificationCursor.update({ where: { job: JOB }, data: { lastErrorCode: "DELIVERY_REVIEW_REQUIRED" } });
+        await writeAudit(tx, { event: "HOSXP_SET_OR_NOTIFICATION_CHECKPOINT", outcome: "FAILURE", metadata: { section: "NOTIFICATION", total: 1 } });
+      });
+      return;
+    }
+    if (!delivery) await prisma.$transaction(async (tx) => {
+      await tx.surgeryNotificationDelivery.create({ data: { job: JOB, operationId, status: "CLAIMED" } });
+      await writeAudit(tx, { event: "HOSXP_SET_OR_NOTIFICATION_CLAIMED", outcome: "SUCCESS", targetType: "HOSXP_OPERATION", targetId: operationId, metadata: { section: "NOTIFICATION", total: 1 } });
+    });
+
+    try {
+      // One operation per request also avoids replaying a whole batch after a partial failure.
+      if (!delivery) await sendSetOrMessages([row]);
+      await prisma.$transaction(async (tx) => {
+        if (!delivery) await tx.surgeryNotificationDelivery.update({ where: key, data: { status: "SENT", sentAt: new Date(), errorCode: null } });
+        await tx.surgeryNotificationCursor.update({ where: { job: JOB }, data: { operationId, requestAt: cursorDateTime(row) || cursor.requestAt } });
+        await writeAudit(tx, {
+          event: delivery ? "HOSXP_SET_OR_NOTIFICATION_CHECKPOINT" : "HOSXP_SET_OR_NOTIFICATION_SENT",
+          outcome: "SUCCESS", targetType: "HOSXP_OPERATION", targetId: operationId,
+          metadata: { total: 1, section: "NOTIFICATION" },
+        });
+      });
+    } catch (error) {
     const errorCode: SetOrNotificationErrorCode = error instanceof SetOrNotificationError
       ? error.code
       : "UNEXPECTED_SEND_ERROR";
     console.error("[set-or-notification] MOPH send failed; cursor paused for review", {
       errorCode,
       httpStatus: error instanceof SetOrNotificationError ? error.httpStatus : undefined,
-      total: rows.length,
+      responseCode: error instanceof SetOrNotificationError ? error.responseCode : undefined,
+      total: 1,
     });
     await prisma
       .$transaction(async (tx) => {
+        await tx.surgeryNotificationDelivery.update({ where: key, data: { status: "REVIEW", errorCode } });
         await tx.surgeryNotificationCursor.update({
           where: { job: JOB },
           data: { paused: true, lastErrorCode: errorCode },
@@ -134,63 +200,48 @@ async function runCheck() {
         await writeAudit(tx, {
           event: "HOSXP_SET_OR_NOTIFICATION_READ",
           outcome: "SUCCESS",
-          metadata: { total: rows.length, section: "NOTIFICATION" },
+          metadata: { total: 1, section: "NOTIFICATION" },
         });
         await writeAudit(tx, {
           event: "HOSXP_SET_OR_NOTIFICATION_SENT",
           outcome: "FAILURE",
           metadata: {
-            total: rows.length,
+            total: 1,
             section: "NOTIFICATION",
             notificationError: errorCode,
+            ...(error instanceof SetOrNotificationError && error.responseCode
+              ? { notificationResponseCode: error.responseCode }
+              : {}),
             ...(error instanceof SetOrNotificationError && error.httpStatus
               ? { httpStatus: error.httpStatus }
               : {}),
           },
         });
       })
-      .catch(() => {
+      .catch((persistError) => {
         console.error("[set-or-notification] Could not persist notification pause", {
           stage: "PERSIST_FAILURE_STATE",
           errorCode,
+          databaseErrorCode: safeErrorCode(persistError),
         });
       });
     return;
+    }
   }
-
-  const maxOperationId = rows.reduce(
-    (max, row) => {
-      const id = String(row.operation_id ?? "0");
-      return BigInt(id) > BigInt(max) ? id : max;
-    },
-    cursor.operationId === "0" ? "0" : cursor.operationId,
-  );
-  const lastTimestamp = rows.map(cursorDateTime).filter(Boolean).sort().at(-1);
-
   await prisma.$transaction(async (tx) => {
-    await writeAudit(tx, {
-      event: "HOSXP_SET_OR_NOTIFICATION_READ",
-      outcome: "SUCCESS",
-      metadata: { total: rows.length, section: "NOTIFICATION" },
-    });
-    await writeAudit(tx, {
-      event: "HOSXP_SET_OR_NOTIFICATION_SENT",
-      outcome: "SUCCESS",
-      metadata: { total: rows.length, section: "NOTIFICATION" },
-    });
     await tx.surgeryNotificationCursor.update({
       where: { job: JOB },
-      data: {
-        requestAt: lastTimestamp ?? cursor.requestAt,
-        operationId: maxOperationId,
-        paused: false,
-        lastErrorCode: null,
-      },
+      data: { paused: false, lastErrorCode: null },
     });
+    await writeAudit(tx, { event: "HOSXP_SET_OR_NOTIFICATION_CHECKPOINT", outcome: "SUCCESS", metadata: { total: rows.length, section: "NOTIFICATION" } });
   });
 }
 
 export function startSetOrNotificationScheduler() {
+  if (!(env.MOPH_NOTIFY_SCHEDULER_ENABLED ?? (env.NODE_ENV === "production"))) {
+    console.info("[set-or-notification] Scheduler disabled; development does not send automatically");
+    return;
+  }
   if (!env.MOPH_NOTIFY_GROUP_CLIENT_KEY || !env.MOPH_NOTIFY_GROUP_SECRET_KEY)
     return;
   const state = (globalScheduler.setOrNotificationScheduler ??= {});
@@ -200,10 +251,11 @@ export function startSetOrNotificationScheduler() {
     if (state.running) return;
     state.running = true;
     try {
-      await runCheck();
-    } catch {
+      await runSetOrNotificationCheck();
+    } catch (error) {
       console.error("[set-or-notification] Scheduler check failed", {
         stage: "RUN_CHECK",
+        errorCode: safeErrorCode(error),
       });
     } finally {
       state.running = false;

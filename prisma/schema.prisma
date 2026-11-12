@@ -215,6 +215,19 @@ model SurgeryNotificationCursor {
   updatedAt     DateTime @updatedAt
 }
 
+// Independent of audit retention: never delete delivery keys while this source is in use.
+model SurgeryNotificationDelivery {
+  job         String   @db.VarChar(64)
+  operationId String   @db.VarChar(191)
+  status      String   @db.VarChar(16)
+  errorCode   String?  @db.VarChar(64)
+  createdAt   DateTime @default(now())
+  sentAt      DateTime?
+
+  @@id([job, operationId])
+  @@index([status, createdAt])
+}
+
 model SurgeryRegisterStaff {
   id                String          @id @default(cuid())
   registerId        String

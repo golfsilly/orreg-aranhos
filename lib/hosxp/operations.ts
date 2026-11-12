@@ -418,8 +418,8 @@ async function getHosxpOperationRequestRows(
   const selectScreenFields = screenSelect.length ? `${screenSelect.join(", ")},` : "";
   return readOnlyQuery(
     `SELECT ${selectScreenFields}
-            opd.bw AS opdscreen_weight,
-            opd.height AS opdscreen_height,
+            COALESCE(NULLIF(opd.bw, 0), NULLIF(admission_screen.bw, 0)) AS opdscreen_weight,
+            COALESCE(NULLIF(opd.height, 0), NULLIF(admission_screen.height, 0)) AS opdscreen_height,
             o.*,
             DATE_FORMAT(o.request_date, '%Y-%m-%d') AS request_day,
             DATE_FORMAT(CONCAT(o.request_date, ' ', COALESCE(o.request_time, '00:00:00')), '%Y-%m-%d %H:%i:%s') AS request_timestamp,
@@ -435,11 +435,12 @@ async function getHosxpOperationRequestRows(
        LEFT JOIN operation_screen preop ON preop.operation_id = o.operation_id
        LEFT JOIN operation_screen_in screen ON screen.operation_id = o.operation_id
        LEFT JOIN doctor d ON d.CODE = o.request_doctor
-       LEFT JOIN (SELECT an, MIN(ward) AS ward FROM ipt GROUP BY an) t ON t.an = o.an
+       LEFT JOIN ipt t ON t.an = o.an AND t.hn = o.hn
        LEFT JOIN ward w ON w.ward = t.ward
        LEFT JOIN spclty sp ON sp.spclty = o.spclty
        LEFT JOIN operation_time_type otn ON otn.operation_time_type_id = o.operation_time_type_id
-       LEFT JOIN opdscreen opd ON opd.vn = o.vn
+       LEFT JOIN opdscreen opd ON opd.vn = o.vn AND opd.hn = o.hn
+       LEFT JOIN opdscreen admission_screen ON admission_screen.vn = t.vn AND admission_screen.hn = o.hn
        LEFT JOIN (
          SELECT od.operation_id,
                 GROUP_CONCAT(DISTINCT oi.NAME ORDER BY od.operation_detail_id SEPARATOR '\\n') AS operation_names,
