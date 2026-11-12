@@ -74,6 +74,21 @@ export const auditMetadataSchema = z
         "NOTIFICATION",
       ])
       .optional(),
+    notificationError: z
+      .enum([
+        "NETWORK_OR_TIMEOUT",
+        "HTTP_CLIENT_ERROR",
+        "HTTP_SERVER_ERROR",
+        "MOPH_UNAUTHORIZED",
+        "MOPH_INVALID_MESSAGE",
+        "MOPH_SEND_ERROR",
+        "MOPH_MISSING_MESSAGES",
+        "MOPH_REJECTED_401",
+        "MOPH_INVALID_RESPONSE",
+        "UNEXPECTED_SEND_ERROR",
+      ])
+      .optional(),
+    httpStatus: z.number().int().min(100).max(599).optional(),
     actionType: z
       .enum(["CREATE", "UPDATE", "RECORD", "ISSUE", "RETURN", "RESOLVE"])
       .optional(),

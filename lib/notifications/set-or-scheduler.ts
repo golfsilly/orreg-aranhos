@@ -7,10 +7,10 @@ import {
 } from "@/lib/hosxp/operations";
 import { prisma } from "@/lib/prisma";
 import "server-only";
-import { sendSetOrMessages } from "./set-or-message";
+import { sendSetOrMessages, SetOrNotificationError, type SetOrNotificationErrorCode } from "./set-or-message";
 
 const JOB = "SET_OR_NEW_OPERATION";
-const INTERVAL_MS = 2 * 60_000;
+const INTERVAL_MS = 5 * 60_000;
 
 type SchedulerState = { timer?: NodeJS.Timeout; running?: boolean };
 const globalScheduler = globalThis as typeof globalThis & {
@@ -69,6 +69,7 @@ async function runCheck() {
     });
     return;
   }
+  if (cursor.paused) return;
 
   const throughAt = sqlDateTime(new Date());
   let rows: Record<string, unknown>[];
@@ -115,9 +116,21 @@ async function runCheck() {
 
   try {
     await sendSetOrMessages(rows);
-  } catch {
+  } catch (error) {
+    const errorCode: SetOrNotificationErrorCode = error instanceof SetOrNotificationError
+      ? error.code
+      : "UNEXPECTED_SEND_ERROR";
+    console.error("[set-or-notification] MOPH send failed; cursor paused for review", {
+      errorCode,
+      httpStatus: error instanceof SetOrNotificationError ? error.httpStatus : undefined,
+      total: rows.length,
+    });
     await prisma
       .$transaction(async (tx) => {
+        await tx.surgeryNotificationCursor.update({
+          where: { job: JOB },
+          data: { paused: true, lastErrorCode: errorCode },
+        });
         await writeAudit(tx, {
           event: "HOSXP_SET_OR_NOTIFICATION_READ",
           outcome: "SUCCESS",
@@ -126,10 +139,22 @@ async function runCheck() {
         await writeAudit(tx, {
           event: "HOSXP_SET_OR_NOTIFICATION_SENT",
           outcome: "FAILURE",
-          metadata: { total: rows.length, section: "NOTIFICATION" },
+          metadata: {
+            total: rows.length,
+            section: "NOTIFICATION",
+            notificationError: errorCode,
+            ...(error instanceof SetOrNotificationError && error.httpStatus
+              ? { httpStatus: error.httpStatus }
+              : {}),
+          },
         });
       })
-      .catch(() => undefined);
+      .catch(() => {
+        console.error("[set-or-notification] Could not persist notification pause", {
+          stage: "PERSIST_FAILURE_STATE",
+          errorCode,
+        });
+      });
     return;
   }
 
@@ -158,6 +183,8 @@ async function runCheck() {
       data: {
         requestAt: lastTimestamp ?? cursor.requestAt,
         operationId: maxOperationId,
+        paused: false,
+        lastErrorCode: null,
       },
     });
   });
@@ -175,7 +202,9 @@ export function startSetOrNotificationScheduler() {
     try {
       await runCheck();
     } catch {
-      // Keep the background worker quiet; operational errors contain no patient data.
+      console.error("[set-or-notification] Scheduler check failed", {
+        stage: "RUN_CHECK",
+      });
     } finally {
       state.running = false;
     }

@@ -106,6 +106,9 @@ export default async function AuditPage({
           safe.nameChanged ? "เปลี่ยนชื่อ" : null,
           safe.workDetailsChanged ? "เปลี่ยนข้อมูลหน่วยงานหรือตำแหน่ง" : null,
           safe.total !== undefined ? `จำนวน ${safe.total}` : null,
+          safe.notificationError
+            ? `MOPH Notify ${safe.notificationError}${safe.httpStatus ? ` · HTTP ${safe.httpStatus}` : ""}`
+            : null,
           safe.created !== undefined ? `เพิ่ม ${safe.created}` : null,
           safe.renumbered !== undefined
             ? `ออกเลขใหม่ ${safe.renumbered}`

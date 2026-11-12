@@ -10,7 +10,6 @@ import {
   Check,
   ClipboardCheck,
   ClipboardList,
-  Clock3,
   DoorOpen,
   FilePenLine,
   History,
@@ -25,7 +24,6 @@ import { useState } from "react";
 import { registerTime } from "../../lib/register-time";
 import { DetailsEditor } from "../editors/details-editor";
 import { RegisterHistory } from "../editors/register-history";
-import { TimesEditor } from "../editors/times-editor";
 import { OperationTeamDisplay } from "./operation-team-display";
 import { TeamSkeleton } from "./operations-skeleton";
 import { formatThaiDateValue } from "./thai-date-picker";
@@ -69,7 +67,7 @@ export function OperationRegisterDialog({
   onChanged: () => void;
 }) {
   const operationId = text(row.operation_id);
-  const [view, setView] = useState<"read" | "times" | "details" | "history">(
+  const [view, setView] = useState<"read" | "details" | "history">(
     "read",
   );
   const [tabState, setTabState] = useState<{
@@ -109,7 +107,7 @@ export function OperationRegisterDialog({
   const operationItems = useQuery({
     queryKey: ["hosxp-operation-items", operationId],
     enabled: view === "read",
-    queryFn: async ({ signal }): Promise<string[]> => {
+    queryFn: async ({ signal }): Promise<{ operationDetailId: number; operationItemId: number | null; operationItemName: string }[]> => {
       const response = await fetch(
         `/api/hosxp/operations/${encodeURIComponent(operationId)}/items`,
         { cache: "no-store", signal },
@@ -117,13 +115,23 @@ export function OperationRegisterDialog({
       if (!response.ok)
         throw new Error("โหลดรายการ Operation จาก HOSxP ไม่สำเร็จ");
       const data = await response.json();
-      if (
-        !Array.isArray(data.operations) ||
-        !data.operations.every((item: unknown) => typeof item === "string")
-      ) {
+      if (!Array.isArray(data.operations) || !data.operations.every((item: unknown) =>
+        typeof item === "object" && item !== null &&
+        Number.isSafeInteger((item as { operationDetailId?: unknown }).operationDetailId) &&
+        typeof (item as { operationItemName?: unknown }).operationItemName === "string"
+      )) {
         throw new Error("โหลดรายการ Operation จาก HOSxP ไม่สำเร็จ");
       }
       return data.operations;
+    },
+  });
+  const registerDetails = useQuery({
+    queryKey: ["register-details", operationId],
+    enabled: view === "read",
+    queryFn: async ({ signal }): Promise<{ pathoOperationDetailIds: number[] }> => {
+      const response = await fetch(`/api/register/${encodeURIComponent(operationId)}/details`, { cache: "no-store", signal });
+      if (!response.ok) throw new Error("โหลดรายละเอียดทะเบียนไม่สำเร็จ");
+      return response.json();
     },
   });
   const anesthesiaStaff = [...(anesthesia.data?.staff ?? [])].sort(
@@ -135,16 +143,6 @@ export function OperationRegisterDialog({
     setView("read");
     onChanged();
   };
-  if (view === "times" && canEdit)
-    return (
-      <TimesEditor
-        operationId={operationId}
-        operationDate={source(row.request_operation_date)?.slice(0, 10)}
-        sourceStartedAt={source(row.sourceOperationStartedAt)}
-        sourceEndedAt={source(row.sourceOperationEndedAt)}
-        onClose={closeEditor}
-      />
-    );
   if (view === "details" && canEdit)
     return (
       <DetailsEditor
@@ -206,7 +204,7 @@ export function OperationRegisterDialog({
   const careFlags = [
     { label: "Pre-op", active: Boolean(row.preOp) },
     { label: "Post-op", active: Boolean(row.postOp) },
-    { label: "Patho", active: Boolean(row.patho) },
+    { label: "ส่งชิ้นเนื้อ", active: Boolean(row.patho) },
   ];
   const registered = row.registerNumber != null && !row.needsDateSync;
   return (
@@ -249,15 +247,6 @@ export function OperationRegisterDialog({
                 >
                   <FilePenLine aria-hidden="true" className="size-4 shrink-0" />
                   <span>ข้อมูลเพิ่มเติม</span>
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setView("times")}
-                  className="h-10 min-w-0 gap-2 rounded-xl border border-border bg-background px-3 text-xs font-semibold text-foreground shadow-xs hover:border-primary/25 hover:bg-primary/5 sm:order-3 sm:px-4"
-                >
-                  <Clock3 aria-hidden="true" className="size-4 shrink-0 text-primary" />
-                  <span>แก้เวลา</span>
                 </Button>
               </>
             )}
@@ -402,39 +391,22 @@ export function OperationRegisterDialog({
                 {[
                   {
                     label: "เวลาเริ่มผ่า",
-                    value: registerTime(row.effectiveOperationStartedAt, true),
-                    edited: Boolean(row.operationStartedAtEdited),
+                    value: registerTime(row.sourceOperationStartedAt, true),
                   },
                   {
                     label: "เวลาผ่าเสร็จ",
-                    value: registerTime(row.effectiveOperationEndedAt, true),
-                    edited: Boolean(row.operationEndedAtEdited),
+                    value: registerTime(row.sourceOperationEndedAt, true),
                   },
-                ].map(({ label, value, edited }) => (
+                ].map(({ label, value }) => (
                   <div
                     key={label}
-                    className={[
-                      "relative min-w-0 overflow-hidden rounded-2xl border bg-card px-4 py-3.5",
-                      edited
-                        ? "border-emerald-500/25 bg-emerald-500/[0.045]"
-                        : "border-border/75",
-                    ].join(" ")}
+                    className="min-w-0 rounded-2xl border border-border/75 bg-card px-4 py-3.5"
                   >
-                    {edited && (
-                      <span
-                        aria-label="แก้ไขจากค่า HOSxP แล้ว"
-                        className="absolute inset-y-0 left-0 w-1 bg-emerald-600 dark:bg-emerald-400"
-                      />
-                    )}
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-[11px] font-semibold text-muted-foreground">
                         {label}
                       </span>
-                      {edited && (
-                        <span className="rounded-full bg-emerald-600/10 px-2 py-0.5 text-[9px] font-semibold text-emerald-800 dark:text-emerald-300">
-                          แก้ไขแล้ว
-                        </span>
-                      )}
+                      <span className="rounded-full bg-primary/8 px-2 py-0.5 text-[9px] font-semibold text-primary">HOSxP</span>
                     </div>
                     <p className="m-0 mt-1.5 font-mono text-lg font-semibold tracking-tight tabular-nums text-foreground sm:text-xl">
                       {value}
@@ -493,13 +465,14 @@ export function OperationRegisterDialog({
                 <ol className="mb-0 mt-3 grid list-none gap-2 p-0 sm:grid-cols-2">
                   {operationItems.data.map((operation, index) => (
                     <li
-                      key={`${operation}-${index}`}
+                      key={operation.operationDetailId}
                       className="flex min-w-0 items-start gap-2.5 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 text-xs leading-5 sm:text-sm"
                     >
                       <span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary/10 text-[9px] font-bold tabular-nums text-primary">
                         {index + 1}
                       </span>
-                      <span className="min-w-0 break-words">{operation}</span>
+                      <span className="min-w-0 break-words">{operation.operationItemName}</span>
+                      {registerDetails.data?.pathoOperationDetailIds.includes(operation.operationDetailId) && <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">ส่งชิ้นเนื้อ</span>}
                     </li>
                   ))}
                 </ol>

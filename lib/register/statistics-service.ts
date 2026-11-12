@@ -59,7 +59,7 @@ export async function loadStatistics(period: StatisticsPeriod, value: string, de
     const [allRegisters, doctorRows] = await prisma.$transaction((tx) => Promise.all([
       tx.surgeryRegister.findMany({
         where: { operationDate: range },
-        select: { id: true, departmentId: true, anesthesia: true, surgeryClass: true, operationDate: true, hosxpOperationId: true, roomEnteredAt: true, operationStartedAt: true, operationEndedAt: true, roomExitedAt: true },
+        select: { id: true, departmentId: true, anesthesia: true, surgeryClass: true, operationDate: true, hosxpOperationId: true, roomEnteredAt: true, roomExitedAt: true },
       }),
       tx.surgeryRegisterStaff.findMany({
         where: { positionId: 1, register: { operationDate: range, ...(department ? { departmentId: department } : {}) } },
@@ -111,8 +111,8 @@ export async function loadStatistics(period: StatisticsPeriod, value: string, de
     const effectiveTimes = new Map(registers.map((register) => {
       const source = register.hosxpOperationId ? sourceById.get(register.hosxpOperationId) : undefined;
       return [register.id, {
-        start: register.operationStartedAt ?? hosxpDateTime(source?.operation_started_at, source?.request_operation_date),
-        end: register.operationEndedAt ?? hosxpDateTime(source?.operation_ended_at, source?.request_operation_date),
+        start: hosxpDateTime(source?.operation_started_at, source?.request_operation_date),
+        end: hosxpDateTime(source?.operation_ended_at, source?.request_operation_date),
       }];
     }));
     const roomIds = new Set(rooms.map((room) => room.id));

@@ -6,9 +6,10 @@ export type Anesthesia = (typeof anesthesiaOptions)[number];
 export type Urgency = (typeof urgencyOptions)[number];
 export type SurgeryClass = (typeof surgeryClassOptions)[number];
 export type MinorPeriod = (typeof minorPeriodOptions)[number];
-export type RegisterDetails = { patho: boolean; preOp: boolean; postOp: boolean; anesthesia: Anesthesia | null; urgency: Urgency | null; surgeryClass: SurgeryClass | null; minorPeriod: MinorPeriod | null; diagnosis: string; remark: string };
+export type RegisterDetails = { pathoOperationDetailIds: number[]; preOp: boolean; postOp: boolean; anesthesia: Anesthesia | null; urgency: Urgency | null; surgeryClass: SurgeryClass | null; minorPeriod: MinorPeriod | null; diagnosis: string; remark: string };
 export const registerDetailsSchema = z.object({
-  patho: z.boolean(), preOp: z.boolean(), postOp: z.boolean(),
+  pathoOperationDetailIds: z.array(z.number().int().positive().max(Number.MAX_SAFE_INTEGER)).max(100).refine((ids) => new Set(ids).size === ids.length, "รายการส่งชิ้นเนื้อซ้ำกัน"),
+  preOp: z.boolean(), postOp: z.boolean(),
   anesthesia: z.enum(anesthesiaOptions).nullable(), urgency: z.enum(urgencyOptions).nullable(),
   surgeryClass: z.enum(surgeryClassOptions).nullable(), minorPeriod: z.enum(minorPeriodOptions).nullable(),
   diagnosis: z.string().trim().max(4000), remark: z.string().trim().max(2000),

@@ -51,7 +51,7 @@ export async function GET(request: Request, { params }: Context) {
     }
 
     stage = "HOSXP_OPERATIONS";
-    const operationItems = await getHosxpOperationItems(Number(operationId));
+    const operationItems = (await getHosxpOperationItems(Number(operationId))).map((item) => item.operationItemName);
     stage = "HOSXP_ANESTHESIA";
     const anesthesia = await getHosxpOperationAnesthesia(Number(operationId));
 

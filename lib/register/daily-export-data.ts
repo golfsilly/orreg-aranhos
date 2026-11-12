@@ -37,9 +37,7 @@ export class SingleRegisterReadError extends Error {
   }
 }
 
-const localDateTime = (value: Date | null | undefined) => value ? new Date(value.getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 19).replace("T", " ") : null;
-
-/** Reads the authorized daily source plus OR-Reg overrides; never writes to HOSxP. */
+/** Reads HOSxP operation times and OR-Reg annotations; never writes to HOSxP. */
 async function registerRowsForSource(
   source: Record<string, unknown>[],
   fallbackDay: string,
@@ -48,7 +46,7 @@ async function registerRowsForSource(
   const ids = [...new Set(source.map((row) => normalizeOperationId(row.operation_id)))];
   const findRegisters = () => ids.length ? prisma.surgeryRegister.findMany({
     where: { hosxpOperationId: { in: ids } },
-    select: { hosxpOperationId: true, sequence: true, calendarMonth: true, fiscalYear: true, departmentId: true, operationDate: true, operationStartedAt: true, operationEndedAt: true, patho: true, preOp: true, postOp: true, anesthesia: true, surgeryClass: true, minorPeriod: true, diagnosis: true, remark: true, staff: { select: { personnelGroup: true, staffName: true, positionName: true, operationItemName: true } } },
+    select: { hosxpOperationId: true, sequence: true, calendarMonth: true, fiscalYear: true, departmentId: true, operationDate: true, patho: true, preOp: true, postOp: true, anesthesia: true, surgeryClass: true, minorPeriod: true, diagnosis: true, remark: true, staff: { select: { personnelGroup: true, staffName: true, positionName: true, operationItemName: true } } },
   }) : Promise.resolve([]);
   let registers;
   let teamRows;
@@ -92,8 +90,8 @@ async function registerRowsForSource(
       age: typeof item.age_text === "string" ? item.age_text : null,
       hn: typeof item.hn === "string" || typeof item.hn === "number" ? String(item.hn) : "",
       operationDate,
-      startedAt: localDateTime(register?.operationStartedAt) ?? (typeof item.operation_started_at === "string" ? item.operation_started_at : null),
-      endedAt: localDateTime(register?.operationEndedAt) ?? (typeof item.operation_ended_at === "string" ? item.operation_ended_at : null),
+      startedAt: typeof item.operation_started_at === "string" ? item.operation_started_at : null,
+      endedAt: typeof item.operation_ended_at === "string" ? item.operation_ended_at : null,
       ward: typeof item.ward_name === "string" ? item.ward_name : null,
       room: typeof item.room_name === "string" ? item.room_name : null,
       urgency: typeof item.emergency_name === "string" ? item.emergency_name : null,
@@ -111,7 +109,7 @@ async function registerRowsForSource(
   }).sort((a, b) => a.operationDate.localeCompare(b.operationDate) || a.departmentName.localeCompare(b.departmentName, "th") || a.registerNumber.localeCompare(b.registerNumber, "th", { numeric: true }));
 }
 
-/** Reads the authorized daily source plus OR-Reg overrides; never writes to HOSxP. */
+/** Reads the authorized HOSxP daily source and OR-Reg annotations; never writes to HOSxP. */
 export async function getDailyRegisterRows(day: string): Promise<DailyRegisterRow[]> {
   return registerRowsForSource(await getHosxpOperationsForDay(day), day);
 }

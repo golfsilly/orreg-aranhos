@@ -300,27 +300,42 @@ export async function getHosxpOperationTeam(
   }));
 }
 
-/** Read only the distinct procedure names for one operation. */
+export type HosxpOperationItem = {
+  operationDetailId: number;
+  operationItemId: number | null;
+  operationItemName: string;
+};
+
+/** Read procedure rows and stable HOSxP detail IDs for per-item pathology selection. */
 export async function getHosxpOperationItems(
   operationId: number,
-): Promise<string[]> {
+): Promise<HosxpOperationItem[]> {
   if (!Number.isSafeInteger(operationId) || operationId < 1)
     throw new Error("Invalid operation ID");
   const rows = await readOnlyQuery(
-    `SELECT oi.NAME AS operation_item_name
+    `SELECT d.operation_detail_id, d.operation_item_id,
+            oi.NAME AS operation_item_name
      FROM operation_detail d
        LEFT JOIN operation_item oi ON oi.operation_item_id = d.operation_item_id
      WHERE d.operation_id = ?
-     GROUP BY oi.operation_item_id, oi.NAME
-     ORDER BY MIN(d.operation_detail_id)`,
+     ORDER BY d.operation_detail_id`,
     [operationId],
   );
-  return rows.flatMap((row) =>
-    typeof row.operation_item_name === "string" &&
-    row.operation_item_name.trim()
-      ? [row.operation_item_name.trim()]
-      : [],
-  );
+  return rows.flatMap((row) => {
+    const operationDetailId = Number(row.operation_detail_id);
+    const operationItemName =
+      typeof row.operation_item_name === "string"
+        ? row.operation_item_name.trim()
+        : "";
+    if (!Number.isSafeInteger(operationDetailId) || operationDetailId < 1 || !operationItemName)
+      return [];
+    const operationItemId = Number(row.operation_item_id);
+    return [{
+      operationDetailId,
+      operationItemId: Number.isSafeInteger(operationItemId) && operationItemId > 0 ? operationItemId : null,
+      operationItemName,
+    }];
+  });
 }
 
 /** Read new operation orders for the outbound set-OR notice. HOSxP remains read-only. */

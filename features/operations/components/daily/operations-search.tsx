@@ -140,8 +140,8 @@ export function OperationsSearch({ canSync }: { canSync: boolean }) {
       case "age": return label(row.effectiveAge);
       case "ward": return label(row.ward_name);
       case "operationDate": return formatThaiDateValue(typeof row.request_operation_date === "string" ? row.request_operation_date.slice(0, 10) : resultDate);
-      case "startTime": return <div className="flex min-h-12 whitespace-nowrap">{Boolean(row.operationStartedAtEdited) && <span aria-label="แก้ไขจาก HOSxP แล้ว" className="w-1.5 shrink-0 bg-emerald-600 dark:bg-emerald-400" />}<span title={registerTime(row.effectiveOperationStartedAt, true)} className="px-2.5 py-3.5">{registerTime(row.effectiveOperationStartedAt)}</span></div>;
-      case "endTime": return <div className="flex min-h-12 whitespace-nowrap">{Boolean(row.operationEndedAtEdited) && <span aria-label="แก้ไขจาก HOSxP แล้ว" className="w-1.5 shrink-0 bg-emerald-600 dark:bg-emerald-400" />}<span title={registerTime(row.effectiveOperationEndedAt, true)} className="px-2.5 py-3.5">{registerTime(row.effectiveOperationEndedAt)}</span></div>;
+      case "startTime": return <div className="min-h-12 whitespace-nowrap px-2.5 py-3.5" title={registerTime(row.effectiveOperationStartedAt, true)}>{registerTime(row.effectiveOperationStartedAt)}</div>;
+      case "endTime": return <div className="min-h-12 whitespace-nowrap px-2.5 py-3.5" title={registerTime(row.effectiveOperationEndedAt, true)}>{registerTime(row.effectiveOperationEndedAt)}</div>;
       case "department": return <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{label(row.departmentName)}</span>;
       case "room": return label(row.room_name);
       case "urgency": return label(row.emergency_name);

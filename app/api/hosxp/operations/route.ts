@@ -28,7 +28,7 @@ export async function GET(request: Request) {
       month ? getHosxpOperatingRooms() : Promise.resolve([]),
     ]);
     const ids = [...new Set(rows.map((row) => normalizeOperationId(row.operation_id)))];
-    const registers = await prisma.surgeryRegister.findMany({ where: { hosxpOperationId: { in: ids } }, select: { hosxpOperationId: true, sequence: true, calendarMonth: true, fiscalYear: true, departmentId: true, operationDate: true, urgency: true, surgeryClass: true, roomEnteredAt: true, operationStartedAt: true, operationEndedAt: true, roomExitedAt: true, patho: true, preOp: true, postOp: true, anesthesia: true, minorPeriod: true, diagnosis: true, remark: true } });
+    const registers = await prisma.surgeryRegister.findMany({ where: { hosxpOperationId: { in: ids } }, select: { hosxpOperationId: true, sequence: true, calendarMonth: true, fiscalYear: true, departmentId: true, operationDate: true, urgency: true, surgeryClass: true, roomEnteredAt: true, roomExitedAt: true, patho: true, preOp: true, postOp: true, anesthesia: true, minorPeriod: true, diagnosis: true, remark: true } });
     const byId = new Map(registers.map((entry) => [entry.hosxpOperationId, entry]));
     const targetType = month ? "HOSXP_MONTH" : "HOSXP_DAY";
     const operations = rows.map((row) => {
@@ -48,12 +48,10 @@ export async function GET(request: Request) {
         effectiveAge: row.age_text ?? null,
         sourceOperationStartedAt: row.operation_started_at ?? null,
         sourceOperationEndedAt: row.operation_ended_at ?? null,
-        effectiveOperationStartedAt: register?.operationStartedAt ?? row.operation_started_at ?? null,
-        effectiveOperationEndedAt: register?.operationEndedAt ?? row.operation_ended_at ?? null,
+        effectiveOperationStartedAt: row.operation_started_at ?? null,
+        effectiveOperationEndedAt: row.operation_ended_at ?? null,
         roomEnteredAt: register?.roomEnteredAt ?? null,
         roomExitedAt: register?.roomExitedAt ?? null,
-        operationStartedAtEdited: register?.operationStartedAt != null,
-        operationEndedAtEdited: register?.operationEndedAt != null,
         registerNumber: register && !needsDateSync ? formatRegisterNumber(register.sequence, register.calendarMonth) : null,
         fiscalYear: register?.fiscalYear ?? null,
         registerUrgency: row.emergency_name ?? register?.urgency ?? null,

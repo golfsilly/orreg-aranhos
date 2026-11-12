@@ -189,6 +189,7 @@ model SurgeryRegister {
   createdAt           DateTime                      @default(now())
   updatedAt           DateTime                      @updatedAt
   staff               SurgeryRegisterStaff[]
+  pathoItems          SurgeryRegisterPathoItem[]
   timeChanges         SurgeryRegisterTimeChange[]
   detailChanges       SurgeryRegisterDetailChange[]
   numberChanges       SurgeryRegisterNumberChange[]
@@ -206,10 +207,12 @@ model SurgeryRegister {
 
 // Durable HOSxP request cursor prevents duplicate group notifications after reloads.
 model SurgeryNotificationCursor {
-  job         String   @id @db.VarChar(64)
-  requestAt   String   @db.VarChar(19)
-  operationId String   @default("0") @db.VarChar(191)
-  updatedAt   DateTime @updatedAt
+  job           String   @id @db.VarChar(64)
+  requestAt     String   @db.VarChar(19)
+  operationId   String   @default("0") @db.VarChar(191)
+  paused        Boolean  @default(false)
+  lastErrorCode String?  @db.VarChar(64)
+  updatedAt     DateTime @updatedAt
 }
 
 model SurgeryRegisterStaff {
@@ -229,6 +232,18 @@ model SurgeryRegisterStaff {
 
   @@index([registerId])
   @@index([positionId, registerId], map: "SurgeryRegisterStaff_positionId_registerId_idx")
+}
+
+model SurgeryRegisterPathoItem {
+  registerId        String
+  register          SurgeryRegister @relation(fields: [registerId], references: [id], onDelete: Restrict)
+  operationDetailId Int
+  operationItemId   Int?
+  operationItemName String          @db.VarChar(250)
+  createdAt         DateTime        @default(now())
+
+  @@id([registerId, operationDetailId])
+  @@index([operationItemId])
 }
 
 model SurgeryRegisterTimeChange {
