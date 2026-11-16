@@ -207,25 +207,29 @@ model SurgeryRegister {
 
 // Durable HOSxP request cursor prevents duplicate group notifications after reloads.
 model SurgeryNotificationCursor {
-  job           String   @id @db.VarChar(64)
-  requestAt     String   @db.VarChar(19)
-  operationId   String   @default("0") @db.VarChar(191)
-  paused        Boolean  @default(false)
-  lastErrorCode String?  @db.VarChar(64)
-  updatedAt     DateTime @updatedAt
+  job                String    @id @db.VarChar(64)
+  requestAt          String    @db.VarChar(19)
+  operationId        String    @default("0") @db.VarChar(191)
+  paused             Boolean   @default(false)
+  lastErrorCode      String?   @db.VarChar(64)
+  lastCheckedAt      DateTime?
+  lastCheckErrorCode String?   @db.VarChar(64)
+  updatedAt          DateTime  @updatedAt
 }
 
 // Independent of audit retention: never delete delivery keys while this source is in use.
 model SurgeryNotificationDelivery {
-  job         String   @db.VarChar(64)
-  operationId String   @db.VarChar(191)
-  status      String   @db.VarChar(16)
-  errorCode   String?  @db.VarChar(64)
-  createdAt   DateTime @default(now())
+  job         String    @db.VarChar(64)
+  operationId String    @db.VarChar(191)
+  status      String    @db.VarChar(16)
+  errorCode   String?   @db.VarChar(64)
+  createdAt   DateTime  @default(now())
   sentAt      DateTime?
 
   @@id([job, operationId])
   @@index([status, createdAt])
+  @@index([job, createdAt])
+  @@index([job, sentAt])
 }
 
 model SurgeryRegisterStaff {

@@ -1,13 +1,20 @@
-import "server-only";
 import { createEnv } from "@t3-oss/env-nextjs";
+import "server-only";
 import { z } from "zod";
 
 // All application environment access goes through this server-only schema.
 // Optional integrations remain optional until their feature is used.
 export const env = createEnv({
   server: {
-    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-    DATABASE_URL: z.url().refine((value) => value.startsWith("mysql://"), "DATABASE_URL must use mysql://"),
+    NODE_ENV: z
+      .enum(["development", "test", "production"])
+      .default("development"),
+    DATABASE_URL: z
+      .url()
+      .refine(
+        (value) => value.startsWith("mysql://"),
+        "DATABASE_URL must use mysql://",
+      ),
     BETTER_AUTH_URL: z.url(),
     BETTER_AUTH_SECRET: z.string().min(32),
     HOSXP_HOST: z.string().min(1).optional(),
@@ -21,11 +28,19 @@ export const env = createEnv({
     MOPH_PROVIDER_ID_BASE_URL: z.url().optional(),
     MOPH_PROVIDER_ID_CLIENT_ID: z.string().min(1).optional(),
     MOPH_PROVIDER_ID_CLIENT_SECRET: z.string().min(1).optional(),
-    MOPH_NOTIFY_API_URL: z.url().default("https://morpromt2f.moph.go.th/api/notify/send"),
+    MOPH_NOTIFY_API_URL: z
+      .url()
+      .default("https://morpromt2f.moph.go.th/api/notify/send"),
     MOPH_NOTIFY_GROUP_CLIENT_KEY: z.string().min(1).optional(),
     MOPH_NOTIFY_GROUP_SECRET_KEY: z.string().min(1).optional(),
     MOPH_NOTIFY_SCHEDULER_ENABLED: z.stringbool().optional(),
-    MOPH_NOTIFY_ORREG_LOGO_URL: z.url().refine((value) => new URL(value).protocol === "https:", "MOPH_NOTIFY_ORREG_LOGO_URL must use https://").optional(),
+    MOPH_NOTIFY_ORREG_LOGO_URL: z
+      .url()
+      .refine(
+        (value) => new URL(value).protocol === "https:",
+        "MOPH_NOTIFY_ORREG_LOGO_URL must use https://",
+      )
+      .optional(),
     SMTP_HOST: z.string().min(1).optional(),
     SMTP_PORT: z.coerce.number().int().min(1).max(65535).optional(),
     SMTP_USER: z.string().min(1).optional(),

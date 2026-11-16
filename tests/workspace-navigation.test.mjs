@@ -6,7 +6,7 @@ import { hasPermission } from "../lib/permissions.ts";
 test("account and administration remain global and retain their role permissions", () => {
   const moduleLinks = workspaceModules.flatMap((module) => module.items.map((item) => item.href));
   const globalLinks = globalWorkspaceMenu.map((item) => item.href);
-  for (const path of ["/profile", "/admin/users", "/admin/audit"]) {
+  for (const path of ["/profile", "/admin/users", "/admin/audit", "/admin/notifications"]) {
     assert.ok(globalLinks.includes(path));
     assert.ok(!moduleLinks.includes(path));
     assert.ok(workspaceMenu.some((item) => item.href === path));

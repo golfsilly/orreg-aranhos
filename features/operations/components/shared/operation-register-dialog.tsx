@@ -27,6 +27,7 @@ import { RegisterHistory } from "../editors/register-history";
 import { OperationTeamDisplay } from "./operation-team-display";
 import { TeamSkeleton } from "./operations-skeleton";
 import { formatThaiDateValue } from "./thai-date-picker";
+import type { HosxpOperationItem, HosxpOrderedOperationItem } from "@/lib/hosxp/operations";
 
 type Row = Record<string, unknown>;
 type RegisterDetailTab = "information" | "surgery-team" | "anesthesia-team";
@@ -105,9 +106,9 @@ export function OperationRegisterDialog({
     },
   });
   const operationItems = useQuery({
-    queryKey: ["hosxp-operation-items", operationId],
+    queryKey: ["hosxp-register-procedures", operationId],
     enabled: view === "read",
-    queryFn: async ({ signal }): Promise<{ operationDetailId: number; operationItemId: number | null; operationItemName: string }[]> => {
+    queryFn: async ({ signal }): Promise<{ operations: HosxpOperationItem[]; orderedOperations: HosxpOrderedOperationItem[] }> => {
       const response = await fetch(
         `/api/hosxp/operations/${encodeURIComponent(operationId)}/items`,
         { cache: "no-store", signal },
@@ -122,7 +123,17 @@ export function OperationRegisterDialog({
       )) {
         throw new Error("โหลดรายการ Operation จาก HOSxP ไม่สำเร็จ");
       }
-      return data.operations;
+      if (!Array.isArray(data.orderedOperations) || !data.orderedOperations.every((item: unknown) => {
+        if (typeof item !== "object" || item === null) return false;
+        const order = item as Partial<HosxpOrderedOperationItem>;
+        return Number.isSafeInteger(order.operationListOperId) &&
+          typeof order.operationName === "string" &&
+          (order.operationPosition === null || typeof order.operationPosition === "string") &&
+          (order.operationSide === null || typeof order.operationSide === "string");
+      })) {
+        throw new Error("โหลดตำแหน่งและด้านของรายการผ่าตัดไม่สำเร็จ");
+      }
+      return { operations: data.operations, orderedOperations: data.orderedOperations };
     },
   });
   const registerDetails = useQuery({
@@ -433,16 +444,21 @@ export function OperationRegisterDialog({
                   </div>
                 </div>
                 <span className="shrink-0 rounded-full border border-border/70 bg-muted/50 px-2.5 py-1 text-[10px] font-semibold tabular-nums text-muted-foreground">
-                  {operationItems.data?.length ?? 0} รายการ
+                  {operationItems.data?.orderedOperations.length ?? 0} รายการสั่งผ่าตัด
                 </span>
               </div>
               {operationItems.isPending ? (
                 <div
-                  className="mt-4 grid gap-2 sm:grid-cols-2"
+                  className="mt-4 space-y-3"
                   role="status"
                   aria-label="กำลังโหลดรายการ Operation"
                 >
-                  <div className="h-16 animate-pulse rounded-xl bg-muted" />
+                  <div className="h-4 w-36 animate-pulse rounded bg-muted" />
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="h-24 animate-pulse rounded-xl bg-muted" />
+                    <div className="h-24 animate-pulse rounded-xl bg-muted" />
+                  </div>
+                  <div className="h-4 w-40 animate-pulse rounded bg-muted" />
                   <div className="h-16 animate-pulse rounded-xl bg-muted" />
                 </div>
               ) : operationItems.isError ? (
@@ -461,25 +477,55 @@ export function OperationRegisterDialog({
                     ลองอีกครั้ง
                   </Button>
                 </div>
-              ) : operationItems.data.length ? (
-                <ol className="mb-0 mt-3 grid list-none gap-2 p-0 sm:grid-cols-2">
-                  {operationItems.data.map((operation, index) => (
-                    <li
-                      key={operation.operationDetailId}
-                      className="flex min-w-0 items-start gap-2.5 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 text-xs leading-5 sm:text-sm"
-                    >
-                      <span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary/10 text-[9px] font-bold tabular-nums text-primary">
-                        {index + 1}
-                      </span>
-                      <span className="min-w-0 break-words">{operation.operationItemName}</span>
-                      {registerDetails.data?.pathoOperationDetailIds.includes(operation.operationDetailId) && <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">ส่งชิ้นเนื้อ</span>}
-                    </li>
-                  ))}
-                </ol>
               ) : (
-                <p className="mb-0 mt-3 rounded-xl border border-dashed border-border px-3 py-5 text-center text-xs text-muted-foreground">
-                  ไม่พบรายการ Operation ใน HOSxP
-                </p>
+                <>
+                  <h4 className="mb-0 mt-4 text-xs font-semibold text-muted-foreground">
+                    รายการสั่งผ่าตัด · {operationItems.data.orderedOperations.length} รายการ
+                  </h4>
+                  {operationItems.data.orderedOperations.length ? (
+                    <ol className="mb-0 mt-2 grid list-none gap-2 p-0 sm:grid-cols-2">
+                      {operationItems.data.orderedOperations.map((operation, index) => (
+                        <li key={operation.operationListOperId} className="flex min-w-0 items-start gap-2.5 rounded-xl border border-border/60 bg-muted/25 px-3 py-3 text-xs leading-5 sm:text-sm">
+                          <span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary/10 text-[9px] font-bold tabular-nums text-primary">{index + 1}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="m-0 break-words font-medium">{operation.operationName}</p>
+                            <dl className="mb-0 mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                              <div className="flex min-w-0 gap-1.5">
+                                <dt className="shrink-0 text-muted-foreground">ตำแหน่ง</dt>
+                                <dd className="m-0 min-w-0 break-words">{operation.operationPosition ?? "ไม่ระบุ"}</dd>
+                              </div>
+                              <div className="flex min-w-0 gap-1.5">
+                                <dt className="shrink-0 text-muted-foreground">ด้าน</dt>
+                                <dd className="m-0 min-w-0 break-words font-medium text-primary">{operation.operationSide ?? "ไม่ระบุ"}</dd>
+                              </div>
+                            </dl>
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : <p className="mb-0 mt-2 text-xs text-muted-foreground">ไม่มีรายการสั่งผ่าตัดใน HOSxP</p>}
+                  <h4 className="mb-0 mt-4 border-t border-border/60 pt-3 text-xs font-semibold text-muted-foreground">รายการผ่าตัดที่บันทึก</h4>
+                  {operationItems.data.operations.length ? (
+                    <ol className="mb-0 mt-3 grid list-none gap-2 p-0 sm:grid-cols-2">
+                      {operationItems.data.operations.map((operation, index) => (
+                        <li
+                          key={operation.operationDetailId}
+                          className="flex min-w-0 flex-wrap items-start gap-2.5 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 text-xs leading-5 sm:text-sm"
+                        >
+                          <span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary/10 text-[9px] font-bold tabular-nums text-primary">
+                            {index + 1}
+                          </span>
+                          <span className="min-w-0 flex-1 break-words">{operation.operationItemName}</span>
+                          {registerDetails.data?.pathoOperationDetailIds.includes(operation.operationDetailId) && <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">ส่งชิ้นเนื้อ</span>}
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="mb-0 mt-3 rounded-xl border border-dashed border-border px-3 py-5 text-center text-xs text-muted-foreground">
+                      ไม่พบรายการ Operation ใน HOSxP
+                    </p>
+                  )}
+                </>
               )}
             </section>
 

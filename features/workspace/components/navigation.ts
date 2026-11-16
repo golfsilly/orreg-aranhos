@@ -10,6 +10,7 @@ import {
   Stethoscope,
   ClipboardPlus,
   UsersRound,
+  BellRing,
 } from "lucide-react";
 
 export type WorkspaceMenuItem = {
@@ -86,6 +87,12 @@ export const globalWorkspaceMenu: readonly WorkspaceMenuItem[] = [
     href: "/admin/audit",
     label: "ประวัติการใช้งาน",
     icon: ScrollText,
+    permission: "audit:read",
+  },
+  {
+    href: "/admin/notifications",
+    label: "สถานะแจ้งเตือน",
+    icon: BellRing,
     permission: "audit:read",
   },
 ];

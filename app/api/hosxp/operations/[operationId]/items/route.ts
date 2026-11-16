@@ -1,7 +1,7 @@
 import { getAuthorizedUser } from "@/lib/authorization";
 import { recordDenied } from "@/lib/audit/denied";
 import { writeAudit } from "@/lib/audit/write";
-import { getHosxpOperationItems } from "@/lib/hosxp/operations";
+import { getHosxpOperationItems, getHosxpOrderedOperationItems } from "@/lib/hosxp/operations";
 import { prisma } from "@/lib/prisma";
 
 const headers = { "Cache-Control": "private, no-store" };
@@ -22,16 +22,19 @@ export async function GET(
   }
 
   try {
-    const operations = await getHosxpOperationItems(Number(operationId));
+    const [operations, orderedOperations] = await Promise.all([
+      getHosxpOperationItems(Number(operationId)),
+      getHosxpOrderedOperationItems(Number(operationId)),
+    ]);
     await writeAudit(prisma, {
       actorId: user.id,
       event: "HOSXP_OPERATION_ITEMS_READ",
       outcome: "SUCCESS",
       targetType: "HOSXP_OPERATION",
       targetId: operationId,
-      metadata: { total: operations.length },
+      metadata: { total: operations.length + orderedOperations.length },
     });
-    return Response.json({ operations }, { headers });
+    return Response.json({ operations, orderedOperations }, { headers });
   } catch {
     await writeAudit(prisma, {
       actorId: user.id,

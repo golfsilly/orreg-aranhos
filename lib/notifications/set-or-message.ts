@@ -98,19 +98,50 @@ function detailRow(label: string, value: string) {
   };
 }
 
+function procedureItems(row: HosxpOperation) {
+  const requested = Array.isArray(row.requested_procedures)
+    ? row.requested_procedures.flatMap((item: unknown) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+        const procedure = item as HosxpOperation;
+        const name = firstValue(procedure, ["operation_name"]);
+        return name ? [{
+          name,
+          position: firstValue(procedure, ["operation_position"]),
+          side: firstValue(procedure, ["operation_side"]),
+        }] : [];
+      })
+    : [];
+  if (requested.length) return requested;
+
+  const names = firstMultilineValue(row, ["operation_names", "operation_name"])
+    .split(/\r?\n/)
+    .map((name) => name.trim())
+    .filter(Boolean);
+  return names.map((name) => ({
+    name,
+    // A case-level location must never be copied onto several procedures.
+    position: names.length === 1 ? firstValue(row, ["operation_position"]) : "",
+    side: names.length === 1 ? firstValue(row, ["operation_side"]) : "",
+  }));
+}
+
 function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
   const requestTimestamp = firstValue(row, ["request_timestamp"]);
   const requestTime = firstValue(row, ["request_time"]);
   const operationTime = firstValue(row, ["operation_time"]);
-  const operationNames = firstMultilineValue(row, [
-    "operation_names",
-    "operation_name",
-  ]);
-  const operationItems = operationNames
-    .split(/\r?\n|,\s*/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-  const operation = operationItems.join(", ");
+  const operationItems = procedureItems(row);
+  const operation = operationItems.map((item) => item.name).join(", ");
+  const sourceDrugAllergy = firstValue(row, ["patient_drug_allergy"]);
+  const drugAllergy = sourceDrugAllergy && sourceDrugAllergy !== "-"
+    ? sourceDrugAllergy
+    : "ไม่ระบุ";
+  const sourceBedNumber = firstValue(row, ["patient_bed_number"]);
+  const bedNumber = sourceBedNumber === "-" || sourceBedNumber === "ไม่ระบุ"
+    ? ""
+    : sourceBedNumber;
+  const anesthesiaTypeId = firstValue(row, ["operation_list_anes_type_id"]);
+  // Zero is a real HOSxP choice: anesthesia is used, but its type is unknown.
+  const usesAnesthesia = /^\d+$/.test(anesthesiaTypeId);
   const npoDate = firstValue(row, [
     "npo_date_time",
     "npo_datetime",
@@ -149,7 +180,11 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
     "operation_request_time",
     "operation_time",
   ]);
-  const timeLabel = time(scheduledOperationTime || operationTime);
+  const scheduledClock = time(scheduledOperationTime || operationTime);
+  // Register display policy: treat a zero scheduled clock as unspecified here.
+  const timeLabel = scheduledClock === "00:00" || scheduledClock === "-"
+    ? "ไม่ระบุ"
+    : scheduledClock;
   const operationNote = firstValue(row, [
     "screen_note",
     "screen_remark",
@@ -173,13 +208,12 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
     "operation_on_call",
     "operation_call",
   ]).toLowerCase();
-  const onCallLabel = ["1", "true", "yes", "y", "on", "on call"].includes(
+  const isOnCall = ["1", "true", "yes", "y", "on", "on call"].includes(
     onCallValue,
-  )
-    ? "On call"
-    : ["0", "false", "no", "n", "off"].includes(onCallValue)
-      ? "ไม่ใช่"
-      : onCallValue || "ไม่ระบุ";
+  );
+  const operationTimeLabel = isOnCall
+    ? timeLabel === "ไม่ระบุ" ? "ON CALL" : `${timeLabel} · ON CALL`
+    : timeLabel;
   const logo = logoUrl
     ? {
         type: "image",
@@ -271,13 +305,22 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
             weight: "bold",
           }),
           ...(operationItems.length
-            ? operationItems.map((item) =>
-                flexText(`• ${item}`, {
-                  size: "sm",
-                  color: "#0B5A4B",
-                  weight: "bold",
-                }),
-              )
+            ? operationItems.map((item) => ({
+                type: "box",
+                layout: "vertical",
+                spacing: "xs",
+                contents: [
+                  flexText(`• ${item.name}`, {
+                    size: "sm", color: "#0B5A4B", weight: "bold",
+                  }),
+                  ...([item.position, item.side].some((value) => value && value !== "-")
+                    ? [flexText([
+                        item.position && item.position !== "-" ? `ตำแหน่ง: ${item.position}` : "",
+                        item.side && item.side !== "-" ? `ด้าน: ${item.side}` : "",
+                      ].filter(Boolean).join(" · "), { size: "xs", color: "#71817A" })]
+                    : []),
+                ],
+              }))
             : [flexText("• ยังไม่ระบุ", { size: "sm", color: "#71817A" })]),
           {
             type: "separator",
@@ -313,8 +356,16 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
                     size: "xs",
                     color: "#71817A",
                   }),
-                  flexText(timeLabel, { weight: "bold", margin: "xs" }),
+                  flexText(operationTimeLabel, {
+                    weight: "bold", margin: "xs",
+                    color: isOnCall ? "#B42318" : "#263A35",
+                  }),
                 ],
+                ...(isOnCall ? {
+                  backgroundColor: "#FFF1F2",
+                  cornerRadius: "10px",
+                  paddingAll: "8px",
+                } : {}),
               },
             ],
           },
@@ -335,6 +386,7 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
               detailRow("ชื่อ-สกุล", field(row, ["patient_name", "fullname"])),
               detailRow("อายุ", field(row, ["age_text", "age"])),
               detailRow("โรคประจำตัว", field(row, ["chronic_disease"])),
+              detailRow("การแพ้ยา", drugAllergy),
             ],
           },
           flexText("รายละเอียดการส่งผ่าตัด", {
@@ -345,11 +397,12 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
           }),
           detailRow("แผนก", field(row, ["department_name", "spclty_name"])),
           detailRow("Ward", field(row, ["ward_name"])),
+          ...(bedNumber ? [detailRow("เตียง", bedNumber)] : []),
           detailRow("เวลา NPO", npo),
           detailRow("น้ำหนัก", weight === "-" ? "-" : `${weight} กก.`),
           detailRow("ส่วนสูง", height === "-" ? "-" : `${height} ซม.`),
           detailRow("แพทย์", field(row, ["request_doctor_name"])),
-          detailRow("On call", onCallLabel),
+          detailRow("ดมยาสลบ", usesAnesthesia ? "ใช้" : "ไม่ใช้"),
           detailRow("หมายเหตุ", operationNote || "-"),
         ],
       },

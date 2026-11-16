@@ -75,6 +75,7 @@ const resultLabels = {
 Object.assign(labels, {
   HOSXP_SET_OR_NOTIFICATION_READ: "อ่านข้อมูลเพื่อแจ้ง Set OR",
   HOSXP_SET_OR_NOTIFICATION_SENT: "ส่งแจ้งเตือน Set OR",
+  NOTIFICATIONS_MONITOR_READ: "ดูสถานะและประวัติแจ้งเตือน",
   POSTOP_READ: "ดูข้อมูลติดตามหลังผ่าตัด",
   POSTOP_RECORD_UPDATED: "บันทึกข้อมูล PACU",
   POSTOP_OBSERVATION_RECORDED: "บันทึกการประเมิน PACU",

@@ -10,7 +10,7 @@ import "server-only";
 import { sendSetOrMessages, SetOrNotificationError, type SetOrNotificationErrorCode } from "./set-or-message";
 
 const JOB = "SET_OR_NEW_OPERATION";
-const INTERVAL_MS = 5 * 60_000;
+const INTERVAL_MS = 3 * 60_000;
 
 type SchedulerState = { timer?: NodeJS.Timeout; running?: boolean };
 const globalScheduler = globalThis as typeof globalThis & {
@@ -123,9 +123,11 @@ export async function runSetOrNotificationCheck() {
       rows = await getHosxpOperationRequestsAfterId(cursor.operationId);
     }
   } catch {
+    await prisma.surgeryNotificationCursor.update({ where: { job: JOB }, data: { lastCheckErrorCode: "HOSXP_UNAVAILABLE" } });
     await auditRead(0, "FAILURE").catch(() => undefined);
     return;
   }
+  await prisma.surgeryNotificationCursor.update({ where: { job: JOB }, data: { lastCheckErrorCode: null } });
 
   // Joins must never create a second message for the same HOSxP operation.
   rows = [...new Map(rows.map((row) => {
@@ -251,13 +253,17 @@ export function startSetOrNotificationScheduler() {
     if (state.running) return;
     state.running = true;
     try {
+      await prisma.surgeryNotificationCursor.updateMany({ where: { job: JOB }, data: { lastCheckedAt: new Date() } });
       await runSetOrNotificationCheck();
     } catch (error) {
       console.error("[set-or-notification] Scheduler check failed", {
         stage: "RUN_CHECK",
         errorCode: safeErrorCode(error),
       });
+      await prisma.surgeryNotificationCursor.updateMany({ where: { job: JOB }, data: { lastCheckErrorCode: safeErrorCode(error) } }).catch(() => undefined);
     } finally {
+      // A checkpoint with no new cases must still prove the poller is alive.
+      await prisma.surgeryNotificationCursor.updateMany({ where: { job: JOB }, data: { lastCheckedAt: new Date() } }).catch(() => undefined);
       state.running = false;
     }
   };

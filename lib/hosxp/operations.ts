@@ -306,6 +306,48 @@ export type HosxpOperationItem = {
   operationItemName: string;
 };
 
+export type HosxpOrderedOperationItem = {
+  operationListOperId: number;
+  operationName: string;
+  operationPosition: string | null;
+  operationSide: string | null;
+};
+
+async function readOrderedOperationRows(operationIds: string[]): Promise<HosxpRow[]> {
+  if (!operationIds.length) return [];
+  return readOnlyQuery(
+    `SELECT operation_id, operation_list_oper_id, operation_name,
+            operation_position, operation_side
+     FROM operation_list_oper
+     WHERE operation_id IN (${operationIds.map(() => "?").join(",")})
+     ORDER BY operation_id, operation_list_oper_id`,
+    operationIds,
+  );
+}
+
+/** Live order details only; anatomical location and side are not persisted in OR-Reg. */
+export async function getHosxpOrderedOperationItems(
+  operationId: number,
+): Promise<HosxpOrderedOperationItem[]> {
+  if (!Number.isSafeInteger(operationId) || operationId < 1)
+    throw new Error("Invalid operation ID");
+  const rows = await readOrderedOperationRows([String(operationId)]);
+  const optionalText = (value: unknown) =>
+    typeof value === "string" && value.trim() && value.trim() !== "-" ? value.trim() : null;
+  return rows.flatMap((row) => {
+    const operationListOperId = Number(row.operation_list_oper_id);
+    const operationName = optionalText(row.operation_name);
+    if (!Number.isSafeInteger(operationListOperId) || operationListOperId < 1 || !operationName)
+      return [];
+    return [{
+      operationListOperId,
+      operationName,
+      operationPosition: optionalText(row.operation_position),
+      operationSide: optionalText(row.operation_side),
+    }];
+  });
+}
+
 /** Read procedure rows and stable HOSxP detail IDs for per-item pathology selection. */
 export async function getHosxpOperationItems(
   operationId: number,
@@ -377,6 +419,23 @@ export async function getHosxpMaxOperationId(): Promise<string> {
   return String(rows[0]?.max_operation_id ?? "0");
 }
 
+/** Resolve only the visible monitor page; never copy patient identity into the delivery ledger. */
+export async function getHosxpNotificationPatients(operationIds: string[]): Promise<Map<string, { name: string; hn: string; operationDate: string | null }>> {
+  if (operationIds.length > 50 || operationIds.some((id) => !/^[1-9]\d{0,18}$/.test(id)))
+    throw new Error("Invalid notification operation IDs");
+  if (!operationIds.length) return new Map();
+  const rows = await readOnlyQuery(`SELECT o.operation_id, o.hn,
+    CONCAT(pt.pname, pt.fname, ' ', pt.lname) AS patient_name,
+    DATE_FORMAT(o.request_operation_date, '%Y-%m-%d') AS operation_date
+    FROM operation_list o LEFT JOIN patient pt ON pt.hn = o.hn
+    WHERE o.operation_id IN (${operationIds.map(() => "?").join(",")})`, operationIds);
+  return new Map(rows.map((row) => [String(row.operation_id), {
+    name: typeof row.patient_name === "string" ? row.patient_name.trim() : "",
+    hn: row.hn == null ? "" : String(row.hn),
+    operationDate: typeof row.operation_date === "string" ? row.operation_date : null,
+  }]));
+}
+
 async function getHosxpOperationRequestRows(
   where: string,
   values: (string | number)[],
@@ -416,7 +475,7 @@ async function getHosxpOperationRequestRows(
       : [];
   });
   const selectScreenFields = screenSelect.length ? `${screenSelect.join(", ")},` : "";
-  return readOnlyQuery(
+  const rows = await readOnlyQuery(
     `SELECT ${selectScreenFields}
             COALESCE(NULLIF(opd.bw, 0), NULLIF(admission_screen.bw, 0)) AS opdscreen_weight,
             COALESCE(NULLIF(opd.height, 0), NULLIF(admission_screen.height, 0)) AS opdscreen_height,
@@ -424,7 +483,12 @@ async function getHosxpOperationRequestRows(
             DATE_FORMAT(o.request_date, '%Y-%m-%d') AS request_day,
             DATE_FORMAT(CONCAT(o.request_date, ' ', COALESCE(o.request_time, '00:00:00')), '%Y-%m-%d %H:%i:%s') AS request_timestamp,
             CONCAT(pt.pname, pt.fname, ' ', pt.lname) AS patient_name,
+            NULLIF(TRIM(pt.drugallergy), '') AS patient_drug_allergy,
             w.NAME AS ward_name, d.NAME AS request_doctor_name,
+            COALESCE(
+              NULLIF(NULLIF(TRIM(t.cur_bedno), ''), '-'),
+              NULLIF(NULLIF(TRIM(admission.bedno), ''), '-')
+            ) AS patient_bed_number,
             sp.NAME AS department_name,
             otn.operation_time_type_name,
             items.operation_names,
@@ -436,6 +500,7 @@ async function getHosxpOperationRequestRows(
        LEFT JOIN operation_screen_in screen ON screen.operation_id = o.operation_id
        LEFT JOIN doctor d ON d.CODE = o.request_doctor
        LEFT JOIN ipt t ON t.an = o.an AND t.hn = o.hn
+       LEFT JOIN iptadm admission ON admission.an = t.an
        LEFT JOIN ward w ON w.ward = t.ward
        LEFT JOIN spclty sp ON sp.spclty = o.spclty
        LEFT JOIN operation_time_type otn ON otn.operation_time_type_id = o.operation_time_type_id
@@ -461,6 +526,23 @@ async function getHosxpOperationRequestRows(
      LIMIT 100`,
     values,
   );
+  if (!rows.length) return rows;
+
+  // Read ordered procedures separately: joining them to the case query would
+  // multiply cases, and aggregating names can lose same-name/different-side items.
+  const operationIds = [...new Set(rows.map((row) => String(row.operation_id)))];
+  const procedures = await readOrderedOperationRows(operationIds);
+  const proceduresByOperation = new Map<string, HosxpRow[]>();
+  for (const procedure of procedures) {
+    const id = String(procedure.operation_id);
+    const items = proceduresByOperation.get(id) ?? [];
+    items.push(procedure);
+    proceduresByOperation.set(id, items);
+  }
+  return rows.map((row) => ({
+    ...row,
+    requested_procedures: proceduresByOperation.get(String(row.operation_id)) ?? [],
+  }));
 }
 
 export async function getHosxpOperationAnesthesia(

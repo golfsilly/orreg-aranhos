@@ -14,11 +14,12 @@ function fixture() {
   let rows = [{ operation_id: 11 }, { operation_id: 12 }];
   let failSend = false;
   let failAcknowledgement = false;
+  let sourceDown = false;
   const db = {
     surgeryNotificationCursor: {
       findUnique: async () => ({ ...cursor }),
       updateMany: async ({ where, data }) => {
-        if (cursor.paused || cursor.operationId !== where.operationId) return { count: 0 };
+        if ((where.paused !== undefined && cursor.paused !== where.paused) || (where.operationId !== undefined && cursor.operationId !== where.operationId)) return { count: 0 };
         Object.assign(cursor, data); return { count: 1 };
       },
       update: async ({ data }) => { Object.assign(cursor, data); return { ...cursor }; },
@@ -41,7 +42,7 @@ function fixture() {
     "@/lib/audit/write": { writeAudit: async () => {} },
     "@/lib/env": { env: { NODE_ENV: "production", MOPH_NOTIFY_GROUP_CLIENT_KEY: "test", MOPH_NOTIFY_GROUP_SECRET_KEY: "test" } },
     "@/lib/prisma": { prisma: db },
-    "@/lib/hosxp/operations": { getHosxpOperationRequestsAfterId: async (id) => rows.filter(r => BigInt(r.operation_id) > BigInt(id)) },
+    "@/lib/hosxp/operations": { getHosxpOperationRequestsAfterId: async (id) => { if (sourceDown) throw new Error("Source unavailable"); return rows.filter(r => BigInt(r.operation_id) > BigInt(id)); } },
     "./set-or-message": { SetOrNotificationError: class extends Error {}, sendSetOrMessages: async (batch) => {
       sent.push(...batch.map(r => r.operation_id));
       if (failSend) throw new Error("uncertain delivery");
@@ -52,10 +53,11 @@ function fixture() {
     if (!(id in mocks)) throw new Error(`Unexpected module ${id}`); return mocks[id];
   }, mod, mod.exports);
   return {
-    run: mod.exports.runSetOrNotificationCheck, sent, deliveries,
+    run: mod.exports.runSetOrNotificationCheck, start: mod.exports.startSetOrNotificationScheduler, sent, deliveries,
     setRows: (r) => { rows = r; }, resume: () => { cursor.paused = false; },
     failSend: () => { failSend = true; }, failAck: () => { failAcknowledgement = true; },
     development: () => { mocks["@/lib/env"].env.NODE_ENV = "development"; },
+    sourceDown: (value) => { sourceDown = value; },
     get cursor() { return cursor; },
   };
 }
@@ -90,4 +92,31 @@ test("rewinding a cursor never resends a recorded successful delivery", async ()
 test("development never polls the real notification group by default", async () => {
   const f = fixture(); f.development(); await f.run();
   assert.deepEqual(f.sent, []); assert.equal(f.deliveries.size, 0);
+});
+
+test("a source failure is visible to the monitor and clears after a successful check", async () => {
+  const f = fixture(); f.sourceDown(true); await f.run();
+  assert.equal(f.cursor.lastCheckErrorCode, "HOSXP_UNAVAILABLE"); assert.deepEqual(f.sent, []);
+  f.sourceDown(false); await f.run();
+  assert.equal(f.cursor.lastCheckErrorCode, null);
+});
+
+test("a poll with no new cases still records a durable heartbeat", async () => {
+  const f = fixture(); f.setRows([]);
+  const originalInterval = globalThis.setInterval;
+  const previousState = globalThis.setOrNotificationScheduler;
+  let interval;
+  try {
+    delete globalThis.setOrNotificationScheduler;
+    globalThis.setInterval = (_callback, ms) => { interval = ms; return { unref() {} }; };
+    f.start();
+    await new Promise(setImmediate);
+    assert.equal(interval, 180000);
+    assert.ok(f.cursor.lastCheckedAt instanceof Date);
+    assert.deepEqual(f.sent, []);
+  } finally {
+    globalThis.setInterval = originalInterval;
+    if (previousState) globalThis.setOrNotificationScheduler = previousState;
+    else delete globalThis.setOrNotificationScheduler;
+  }
 });
