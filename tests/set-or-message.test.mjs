@@ -71,7 +71,7 @@ test("notification card omits the entire bed row when the admission has no bed",
 test("on-call replaces an unspecified scheduled clock and is highlighted", () => {
   for (const value of [undefined, null, "", "00:00", "00:00:00"]) {
     const card = mod.exports.render({ request_operation_time: value, preop_on_call: "Y" });
-    assert.equal(textAfterLabel(card, "เวลาผ่าตัด"), "ON CALL");
+    assert.equal(textAfterLabel(card, "เวลาผ่าตัด"), "ON\u00A0CALL");
     assert.throws(() => textAfterLabel(card, "On call"), /Missing notification field/);
     const schedule = card.contents.body.contents.find((node) => node.contents?.[1]?.contents?.[0]?.text === "เวลาผ่าตัด").contents[1];
     assert.equal(schedule.contents[1].color, "#B42318");
@@ -82,7 +82,7 @@ test("on-call replaces an unspecified scheduled clock and is highlighted", () =>
 test("on-call follows an entered scheduled time in the same highlighted field", () => {
   for (const selected of ["Y", "1", 1, "true", "on call"]) {
     const card = mod.exports.render({ request_operation_time: "09:30:00", preop_on_call: selected });
-    assert.equal(textAfterLabel(card, "เวลาผ่าตัด"), "09:30 · ON CALL");
+    assert.equal(textAfterLabel(card, "เวลาผ่าตัด"), "09:30 · ON\u00A0CALL");
   }
 });
 
@@ -113,6 +113,16 @@ test("an unselected or invalid anesthesia choice keeps the row and displays not 
   }
 });
 
+test("notification chronic disease uses the requested display default without changing the source", () => {
+  for (const value of [undefined, null, "", "  ", "-", " - "]) {
+    const row = { chronic_disease: value };
+    const before = structuredClone(row);
+    assert.equal(textAfterLabel(mod.exports.render(row), "โรคประจำตัว"), "ปฏิเสธ");
+    assert.deepEqual(row, before);
+  }
+  assert.equal(textAfterLabel(mod.exports.render({ chronic_disease: "Synthetic condition" }), "โรคประจำตัว"), "Synthetic condition");
+});
+
 test("drug allergy is shown in the patient section immediately after chronic disease", () => {
   const row = { chronic_disease: "Synthetic condition", patient_drug_allergy: "DEMO_DRUG_A,DEMO_DRUG_B" };
   const before = structuredClone(row);
@@ -125,12 +135,51 @@ test("drug allergy is shown in the patient section immediately after chronic dis
   assert.deepEqual(row, before);
 });
 
-test("missing allergy data is unspecified while explicit source statements remain unchanged", () => {
+test("missing allergy data is not converted into a confirmed denial while explicit source statements remain unchanged", () => {
   for (const value of [undefined, null, "", "  ", "-"]) {
-    assert.equal(textAfterLabel(mod.exports.render({ patient_drug_allergy: value }), "การแพ้ยา"), "ไม่ระบุ");
+    assert.equal(textAfterLabel(mod.exports.render({ patient_drug_allergy: value }), "การแพ้ยา"), "ไม่มีข้อมูลการแพ้ยา");
   }
   const sourceStatement = "ปฏิเสธการแพ้ยา";
   assert.equal(textAfterLabel(mod.exports.render({ patient_drug_allergy: sourceStatement }), "การแพ้ยา"), sourceStatement);
+});
+
+test("anesthesia, Dx. Note and remarks remain separate and ordered in the compact layout", () => {
+  const row = {
+    operation_list_anes_type_id: 0,
+    dx_note: "Synthetic diagnosis A\nSynthetic diagnosis B",
+    note: "Synthetic remark only",
+    provision_diagnosis_text: "Another diagnosis source",
+  };
+  const before = structuredClone(row);
+  const card = mod.exports.render(row);
+  assert.equal(textAfterLabel(card, "ดมยาสลบ"), "ใช้");
+  assert.equal(textAfterLabel(card, "Dx."), "Synthetic diagnosis A\nSynthetic diagnosis B");
+  assert.equal(textAfterLabel(card, "หมายเหตุ"), "Synthetic remark only");
+  const texts = [];
+  const visit = (node) => {
+    if (node.text) texts.push(node.text);
+    if (node.type === "text") assert.equal(node.wrap, true);
+    node.contents?.forEach(visit);
+  };
+  visit(card.contents.body);
+  assert.ok(texts.indexOf("ดมยาสลบ") < texts.indexOf("Dx."));
+  assert.ok(texts.indexOf("Dx.") < texts.indexOf("หมายเหตุ"));
+  assert.deepEqual(row, before);
+});
+
+test("empty Dx. Note never borrows legacy diagnoses written in remarks or other diagnosis fields", () => {
+  for (const dx_note of [undefined, null, "", "  "]) {
+    const card = mod.exports.render({ dx_note, note: "Dx. legacy free text", provision_diagnosis_text: "Other diagnosis" });
+    assert.equal(textAfterLabel(card, "Dx."), "-");
+    assert.equal(textAfterLabel(card, "หมายเหตุ"), "Dx. legacy free text");
+    assert.equal(textAfterLabel(card, "ดมยาสลบ"), "ไม่ใช้");
+  }
+});
+
+test("dedicated screen remarks retain priority and line breaks without replacing Dx. Note", () => {
+  const card = mod.exports.render({ dx_note: "Synthetic diagnosis", screen_note: "Screen remark A\r\nScreen remark B", note: "Older case remark" });
+  assert.equal(textAfterLabel(card, "Dx."), "Synthetic diagnosis");
+  assert.equal(textAfterLabel(card, "หมายเหตุ"), "Screen remark A\nScreen remark B");
 });
 
 function procedureCards(row) {
@@ -155,9 +204,56 @@ test("ordered procedures retain their own anatomical site and side, even with id
     ["• MRM", "ตำแหน่ง: BREAST · ด้าน: ซ้าย"],
     ["• Excision, local", "ตำแหน่ง: ARM · ด้าน: ขวา"],
   ]);
-  assert.equal(cards[0].contents[1].size, "xs");
+  assert.equal(cards[0].contents[1].size, "sm");
   assert.equal(cards[0].contents[1].wrap, true);
   assert.deepEqual(row, before);
+});
+
+test("readable card keeps every clinical field, allows full text and avoids undersized body text", () => {
+  const row = {
+    patient_name: "ชื่อผู้ป่วยสมมติสำหรับทดสอบ นามสกุลสมมติยาวสำหรับทดสอบ",
+    hn: "DEMO-0001", age_text: "59 ปี 2 เดือน 28 วัน",
+    ward_name: "หอผู้ป่วยสมมติชื่อยาว อาคารผู้ป่วยชั้นห้า",
+    request_doctor_name: "แพทย์สมมติชื่อยาว สำหรับตรวจรูปแบบ",
+    requested_procedures: [{ operation_name: "Long synthetic procedure, with complete clinical wording", operation_position: "BREAST", operation_side: "ขวา" }],
+    dx_note: "Synthetic Dx. A\nSynthetic Dx. B", note: "Synthetic note A\nSynthetic note B",
+  };
+  const card = mod.exports.render(row);
+  const texts = [];
+  const visit = (node) => {
+    if (node.type === "text") {
+      texts.push(node);
+      assert.ok(["sm", "md"].includes(node.size), `Body text must remain readable: ${node.text}`);
+      assert.equal(node.wrap, true);
+      assert.equal(node.maxLines, undefined);
+      assert.equal(node.adjustMode, undefined);
+    }
+    node.contents?.forEach(visit);
+  };
+  visit(card.contents.body);
+  for (const [label, expected] of [
+    ["ชื่อ-สกุล", row.patient_name], ["HN", row.hn], ["อายุ", row.age_text],
+    ["Ward", row.ward_name], ["แพทย์", row.request_doctor_name],
+    ["Dx.", row.dx_note], ["หมายเหตุ", row.note],
+  ]) assert.equal(textAfterLabel(card, label), expected);
+  assert.equal(texts.find((node) => node.text === row.patient_name).size, "md");
+  assert.equal(texts.find((node) => node.text === `• ${row.requested_procedures[0].operation_name}`).size, "md");
+  const patient = card.contents.body.contents.find((node) => node.contents?.[0]?.text === "ข้อมูลผู้ป่วย");
+  assert.ok(patient.contents.some((node) => node.contents?.[0]?.text === "HN"));
+  assert.ok(patient.contents.some((node) => node.contents?.[0]?.text === "อายุ"));
+  const blank = mod.exports.render({});
+  for (const label of ["Dx.", "หมายเหตุ", "เวลา NPO", "Ward", "แพทย์", "น้ำหนัก", "ส่วนสูง"])
+    assert.equal(textAfterLabel(blank, label), "-", `Missing fields must stay visible: ${label}`);
+});
+
+test("schedule date and clock have matching padding with or without on-call emphasis", () => {
+  for (const selected of ["Y", "N"]) {
+    const card = mod.exports.render({ preop_on_call: selected, request_operation_time: "14:00:00" });
+    const schedule = card.contents.body.contents.find((node) => node.contents?.[0]?.contents?.[0]?.text === "วันที่ผ่าตัด");
+    const [date, clock] = schedule.contents;
+    assert.equal(date.paddingAll, clock.paddingAll);
+    assert.equal(clock.contents[1].text, selected === "Y" ? "14:00 · ON\u00A0CALL" : "14:00");
+  }
 });
 
 test("partial or missing procedure metadata does not create empty labels or borrow another item's site", () => {

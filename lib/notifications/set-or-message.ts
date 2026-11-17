@@ -1,7 +1,10 @@
 import { BRAND } from "@/lib/brand";
 import "server-only";
 import { assertSetOrResponse, SetOrNotificationError } from "./set-or-response";
-export { SetOrNotificationError, type SetOrNotificationErrorCode } from "./set-or-response";
+export {
+  SetOrNotificationError,
+  type SetOrNotificationErrorCode,
+} from "./set-or-response";
 
 type HosxpOperation = Record<string, unknown>;
 
@@ -82,17 +85,46 @@ function flexText(
   };
 }
 
-function detailRow(label: string, value: string) {
+function detailRow(label: string, value: string, emphasized = false) {
   return {
     type: "box",
     layout: "horizontal",
-    spacing: "md",
+    spacing: "sm",
     contents: [
-      flexText(label, { flex: 3, color: "#71817A" }),
+      flexText(label, { flex: 3, size: "sm", color: "#52665D" }),
       flexText(value || "-", {
         flex: 5,
-        align: "end",
-        weight: "bold",
+        size: "sm",
+        align: "start",
+        ...(emphasized ? { weight: "bold" } : {}),
+      }),
+    ],
+  };
+}
+
+function summaryField(label: string, value: string) {
+  return {
+    type: "box",
+    layout: "vertical",
+    flex: 1,
+    spacing: "xs",
+    contents: [
+      flexText(label, { size: "sm", color: "#52665D" }),
+      flexText(value || "-", { size: "sm", weight: "bold" }),
+    ],
+  };
+}
+
+function clinicalNote(label: string, value: string, emphasized = false) {
+  return {
+    type: "box",
+    layout: "vertical",
+    spacing: "xs",
+    contents: [
+      flexText(label, { size: "sm", color: "#52665D" }),
+      flexText(value || "-", {
+        size: emphasized ? "md" : "sm",
+        ...(emphasized ? { weight: "bold" } : {}),
       }),
     ],
   };
@@ -104,11 +136,15 @@ function procedureItems(row: HosxpOperation) {
         if (!item || typeof item !== "object" || Array.isArray(item)) return [];
         const procedure = item as HosxpOperation;
         const name = firstValue(procedure, ["operation_name"]);
-        return name ? [{
-          name,
-          position: firstValue(procedure, ["operation_position"]),
-          side: firstValue(procedure, ["operation_side"]),
-        }] : [];
+        return name
+          ? [
+              {
+                name,
+                position: firstValue(procedure, ["operation_position"]),
+                side: firstValue(procedure, ["operation_side"]),
+              },
+            ]
+          : [];
       })
     : [];
   if (requested.length) return requested;
@@ -131,14 +167,21 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
   const operationTime = firstValue(row, ["operation_time"]);
   const operationItems = procedureItems(row);
   const operation = operationItems.map((item) => item.name).join(", ");
+  const sourceChronicDisease = firstValue(row, ["chronic_disease"]);
+  const chronicDisease =
+    sourceChronicDisease && sourceChronicDisease !== "-"
+      ? sourceChronicDisease
+      : "ปฏิเสธ";
   const sourceDrugAllergy = firstValue(row, ["patient_drug_allergy"]);
-  const drugAllergy = sourceDrugAllergy && sourceDrugAllergy !== "-"
-    ? sourceDrugAllergy
-    : "ไม่ระบุ";
+  const drugAllergy =
+    sourceDrugAllergy && sourceDrugAllergy !== "-"
+      ? sourceDrugAllergy
+      : "ไม่มีข้อมูลการแพ้ยา";
   const sourceBedNumber = firstValue(row, ["patient_bed_number"]);
-  const bedNumber = sourceBedNumber === "-" || sourceBedNumber === "ไม่ระบุ"
-    ? ""
-    : sourceBedNumber;
+  const bedNumber =
+    sourceBedNumber === "-" || sourceBedNumber === "ไม่ระบุ"
+      ? ""
+      : sourceBedNumber;
   const anesthesiaTypeId = firstValue(row, ["operation_list_anes_type_id"]);
   // Zero is a real HOSxP choice: anesthesia is used, but its type is unknown.
   const usesAnesthesia = /^\d+$/.test(anesthesiaTypeId);
@@ -182,10 +225,14 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
   ]);
   const scheduledClock = time(scheduledOperationTime || operationTime);
   // Register display policy: treat a zero scheduled clock as unspecified here.
-  const timeLabel = scheduledClock === "00:00" || scheduledClock === "-"
-    ? "ไม่ระบุ"
-    : scheduledClock;
-  const operationNote = firstValue(row, [
+  const timeLabel =
+    scheduledClock === "00:00" || scheduledClock === "-"
+      ? "ไม่ระบุ"
+      : scheduledClock;
+  // HOSxP's Dx. Note and remarks are separate clinical fields. Never infer
+  // a diagnosis from remarks entered before staff started using Dx. Note.
+  const diagnosis = firstMultilineValue(row, ["dx_note"]);
+  const operationNote = firstMultilineValue(row, [
     "screen_note",
     "screen_remark",
     "preop_note",
@@ -211,8 +258,12 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
   const isOnCall = ["1", "true", "yes", "y", "on", "on call"].includes(
     onCallValue,
   );
+  // Keep ON CALL together when a narrow messaging client wraps the time.
+  const onCallLabel = "ON\u00A0CALL";
   const operationTimeLabel = isOnCall
-    ? timeLabel === "ไม่ระบุ" ? "ON CALL" : `${timeLabel} · ON CALL`
+    ? timeLabel === "ไม่ระบุ"
+      ? onCallLabel
+      : `${timeLabel} · ${onCallLabel}`
     : timeLabel;
   const logo = logoUrl
     ? {
@@ -242,22 +293,22 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
       header: {
         type: "box",
         layout: "vertical",
-        backgroundColor: "#0B5A4B",
-        paddingAll: "18px",
+        backgroundColor: "#103F35",
+        paddingAll: "14px",
         contents: [
           {
             type: "box",
             layout: "horizontal",
-            spacing: "md",
+            spacing: "sm",
             alignItems: "center",
             contents: [
               {
                 type: "box",
                 layout: "vertical",
-                width: "42px",
-                height: "42px",
-                cornerRadius: "12px",
-                backgroundColor: "#E4F0EA",
+                width: "36px",
+                height: "36px",
+                cornerRadius: "10px",
+                backgroundColor: "#FFFFFF",
                 justifyContent: "center",
                 contents: [logo],
               },
@@ -266,10 +317,10 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
                 layout: "vertical",
                 flex: 1,
                 contents: [
-                  flexText(`${BRAND.wordmark} / NOTIFICATION`, {
-                    size: "xs",
+                  flexText(BRAND.wordmark, {
+                    size: "sm",
                     weight: "bold",
-                    color: "#D7C58A",
+                    color: "#BCD5CC",
                   }),
                   flexText(BRAND.hospitalName, {
                     size: "sm",
@@ -281,10 +332,10 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
             ],
           },
           flexText("แจ้งเตือนเคสผ่าตัดใหม่", {
-            size: "lg",
+            size: "md",
             weight: "bold",
             color: "#FFFFFF",
-            margin: "lg",
+            margin: "sm",
           }),
           flexText(`${thaiDate(orderDay)} · ${time(orderClock)} น.`, {
             size: "xs",
@@ -296,12 +347,13 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
       body: {
         type: "box",
         layout: "vertical",
-        spacing: "md",
-        paddingAll: "18px",
+        spacing: "xs",
+        paddingAll: "14px",
+        backgroundColor: "#FFFFFF",
         contents: [
-          flexText("รายการหัตถการ / OPERATION", {
-            size: "xs",
-            color: "#71817A",
+          flexText("หัตถการผ่าตัด", {
+            size: "sm",
+            color: "#52665D",
             weight: "bold",
           }),
           ...(operationItems.length
@@ -311,37 +363,57 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
                 spacing: "xs",
                 contents: [
                   flexText(`• ${item.name}`, {
-                    size: "sm", color: "#0B5A4B", weight: "bold",
+                    size: "md",
+                    color: "#0B5A4B",
+                    weight: "bold",
                   }),
-                  ...([item.position, item.side].some((value) => value && value !== "-")
-                    ? [flexText([
-                        item.position && item.position !== "-" ? `ตำแหน่ง: ${item.position}` : "",
-                        item.side && item.side !== "-" ? `ด้าน: ${item.side}` : "",
-                      ].filter(Boolean).join(" · "), { size: "xs", color: "#71817A" })]
+                  ...([item.position, item.side].some(
+                    (value) => value && value !== "-",
+                  )
+                    ? [
+                        flexText(
+                          [
+                            item.position && item.position !== "-"
+                              ? `ตำแหน่ง: ${item.position}`
+                              : "",
+                            item.side && item.side !== "-"
+                              ? `ด้าน: ${item.side}`
+                              : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" · "),
+                          { size: "sm", color: "#52665D" },
+                        ),
+                      ]
                     : []),
                 ],
               }))
-            : [flexText("• ยังไม่ระบุ", { size: "sm", color: "#71817A" })]),
+            : [flexText("• ยังไม่ระบุ", { size: "md", color: "#52665D" })]),
           {
             type: "separator",
-            margin: "sm",
-            color: "#E2EAE5",
+            margin: "md",
+            color: "#E3E9E6",
           },
           {
             type: "box",
             layout: "horizontal",
             spacing: "md",
+            backgroundColor: "#F3F6F4",
+            cornerRadius: "10px",
+            paddingAll: "10px",
             contents: [
               {
                 type: "box",
                 layout: "vertical",
                 flex: 1,
+                paddingAll: "6px",
                 contents: [
                   flexText("วันที่ผ่าตัด", {
-                    size: "xs",
-                    color: "#71817A",
+                    size: "sm",
+                    color: "#52665D",
                   }),
                   flexText(thaiDate(surgeryDay), {
+                    size: "md",
                     weight: "bold",
                     margin: "xs",
                   }),
@@ -351,72 +423,95 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
                 type: "box",
                 layout: "vertical",
                 flex: 1,
+                paddingAll: "6px",
                 contents: [
                   flexText("เวลาผ่าตัด", {
-                    size: "xs",
-                    color: "#71817A",
+                    size: "sm",
+                    color: "#52665D",
                   }),
                   flexText(operationTimeLabel, {
-                    weight: "bold", margin: "xs",
+                    size: "md",
+                    weight: "bold",
+                    margin: "xs",
                     color: isOnCall ? "#B42318" : "#263A35",
                   }),
                 ],
-                ...(isOnCall ? {
-                  backgroundColor: "#FFF1F2",
-                  cornerRadius: "10px",
-                  paddingAll: "8px",
-                } : {}),
+                ...(isOnCall
+                  ? {
+                      backgroundColor: "#FFF1F2",
+                      cornerRadius: "10px",
+                    }
+                  : {}),
               },
             ],
           },
           {
             type: "box",
             layout: "vertical",
-            backgroundColor: "#F1F6F3",
-            cornerRadius: "12px",
-            paddingAll: "14px",
-            spacing: "sm",
+            backgroundColor: "#F6F8F7",
+            cornerRadius: "10px",
+            paddingAll: "12px",
+            spacing: "xs",
             contents: [
               flexText("ข้อมูลผู้ป่วย", {
-                size: "xs",
+                size: "sm",
                 color: "#0B5A4B",
                 weight: "bold",
               }),
-              detailRow("HN", field(row, ["hn"])),
-              detailRow("ชื่อ-สกุล", field(row, ["patient_name", "fullname"])),
+              clinicalNote(
+                "ชื่อ-สกุล",
+                field(row, ["patient_name", "fullname"]),
+                true,
+              ),
+              detailRow("HN", field(row, ["hn"]), true),
               detailRow("อายุ", field(row, ["age_text", "age"])),
-              detailRow("โรคประจำตัว", field(row, ["chronic_disease"])),
+              detailRow("โรคประจำตัว", chronicDisease),
               detailRow("การแพ้ยา", drugAllergy),
             ],
           },
           flexText("รายละเอียดการส่งผ่าตัด", {
-            size: "xs",
+            size: "sm",
             color: "#0B5A4B",
             weight: "bold",
-            margin: "sm",
+            margin: "md",
           }),
           detailRow("แผนก", field(row, ["department_name", "spclty_name"])),
-          detailRow("Ward", field(row, ["ward_name"])),
+          clinicalNote("Ward", field(row, ["ward_name"])),
           ...(bedNumber ? [detailRow("เตียง", bedNumber)] : []),
-          detailRow("เวลา NPO", npo),
-          detailRow("น้ำหนัก", weight === "-" ? "-" : `${weight} กก.`),
-          detailRow("ส่วนสูง", height === "-" ? "-" : `${height} ซม.`),
-          detailRow("แพทย์", field(row, ["request_doctor_name"])),
-          detailRow("ดมยาสลบ", usesAnesthesia ? "ใช้" : "ไม่ใช้"),
-          detailRow("หมายเหตุ", operationNote || "-"),
+          {
+            type: "box",
+            layout: "horizontal",
+            spacing: "md",
+            contents: [
+              summaryField("น้ำหนัก", weight === "-" ? "-" : `${weight} กก.`),
+              summaryField("ส่วนสูง", height === "-" ? "-" : `${height} ซม.`),
+            ],
+          },
+          clinicalNote("แพทย์", field(row, ["request_doctor_name"])),
+          {
+            type: "box",
+            layout: "horizontal",
+            spacing: "md",
+            contents: [
+              summaryField("เวลา NPO", npo),
+              summaryField("ดมยาสลบ", usesAnesthesia ? "ใช้" : "ไม่ใช้"),
+            ],
+          },
+          { type: "separator", margin: "sm", color: "#E3E9E6" },
+          clinicalNote("Dx.", diagnosis),
+          clinicalNote("หมายเหตุ", operationNote),
         ],
       },
       footer: {
         type: "box",
         layout: "vertical",
-        paddingAll: "16px",
+        paddingAll: "12px",
+        backgroundColor: "#F6F8F7",
         contents: [
-          { type: "separator", color: "#E2EAE5" },
           flexText(`${BRAND.wordmark} · ${BRAND.hospitalName}`, {
             size: "xs",
-            color: "#71817A",
+            color: "#63766F",
             align: "center",
-            margin: "md",
           }),
         ],
       },
