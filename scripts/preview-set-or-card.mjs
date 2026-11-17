@@ -36,6 +36,7 @@ const base = {
 };
 const fixtures = {
   regular: base,
+  without_anesthesia: { ...base, operation_list_anes_type_id: null },
   oncall: { ...base, request_operation_time: "00:00:00", preop_on_call: "Y", requested_procedures: [
     { operation_name: "Low transverse caesarean section", operation_position: "ABDOMEN", operation_side: "-" },
     { operation_name: "Additional procedure for layout verification", operation_position: "ABDOMEN", operation_side: "-" },
@@ -49,6 +50,7 @@ const fixtures = {
     note: "หมายเหตุตัวอย่างบรรทัดแรก\nหมายเหตุตัวอย่างบรรทัดที่สอง ข้อมูลทั้งหมดในภาพนี้เป็นข้อมูลสมมติ",
   },
   empty: {},
+  anesthesia_empty: { operation_list_anes_type_id: 0 },
 };
 const escape = (text) => String(text).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 const sizes = { xxs: 11, xs: 13, sm: 14, md: 16, lg: 19 };

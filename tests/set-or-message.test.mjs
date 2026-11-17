@@ -20,12 +20,100 @@ function textAfterLabel(card, label) {
     for (const children of [node.contents, node.header?.contents, node.body?.contents, node.footer?.contents]) {
       if (!children) continue;
       const index = children.findIndex((child) => child.text === label);
-      if (index !== -1) return children[index + 1]?.text;
+      if (index !== -1) {
+        let value = children[index + 1];
+        while (value?.contents?.length) value = value.contents[0];
+        return value?.text;
+      }
       pending.push(...children);
     }
   }
   throw new Error(`Missing notification field ${label}`);
 }
+
+function allTextNodes(card) {
+  const texts = [];
+  const visit = (node) => {
+    if (node.type === "text") texts.push(node);
+    node.contents?.forEach(visit);
+  };
+  for (const section of [card.contents.header, card.contents.body, card.contents.footer]) visit(section);
+  return texts;
+}
+
+test("selected anesthesia highlights patient name, every procedure name, Dx. Note and the used badge", () => {
+  for (const selected of [0, "0", " 0 ", 1, "2", 3, "4"]) {
+    const row = {
+      operation_list_anes_type_id: selected,
+      patient_name: "Synthetic patient name", dx_note: "Synthetic Dx. A\nSynthetic Dx. B",
+      note: "Synthetic remarks", preop_on_call: "Y", request_operation_time: "14:00:00",
+      requested_procedures: [
+        { operation_name: "Synthetic procedure A", operation_position: "BREAST", operation_side: "ขวา" },
+        { operation_name: "Synthetic procedure B", operation_position: "ARM", operation_side: "ซ้าย" },
+      ],
+    };
+    const before = structuredClone(row);
+    const card = mod.exports.render(row);
+    const texts = allTextNodes(card);
+    assert.deepEqual(texts.filter((node) => node.color === "#B42318").map((node) => node.text).sort(), [
+      "• Synthetic procedure A", "• Synthetic procedure B", "14:00 · ON\u00A0CALL", row.patient_name, row.dx_note, "ใช้",
+    ].sort());
+    for (const label of ["ชื่อ-สกุล", "หัตถการผ่าตัด", "Dx.", "หมายเหตุ"])
+      assert.notEqual(texts.find((node) => node.text === label).color, "#B42318");
+    assert.equal(textAfterLabel(card, "ดมยาสลบ"), "ใช้");
+    assert.equal(textAfterLabel(card, "Dx."), row.dx_note);
+    assert.deepEqual(row, before);
+  }
+});
+
+test("unselected anesthesia preserves normal colors even when on-call is selected", () => {
+  for (const selected of [undefined, null, "", "  ", "-", -1, "unknown"]) {
+    const card = mod.exports.render({
+      operation_list_anes_type_id: selected, require_anes: "Y", preop_on_call: "Y",
+      patient_name: "Synthetic patient", dx_note: "Synthetic Dx.",
+      operation_name: "Synthetic procedure", operation_position: "BREAST", operation_side: "ขวา",
+    });
+    const texts = allTextNodes(card);
+    assert.deepEqual(texts.filter((node) => node.color === "#B42318").map((node) => node.text), ["ON\u00A0CALL"]);
+    assert.equal(texts.find((node) => node.text === "• Synthetic procedure").color, "#0B5A4B");
+    assert.equal(textAfterLabel(card, "ดมยาสลบ"), "ไม่ใช้");
+  }
+});
+
+test("anesthesia does not color empty placeholders and also highlights legacy procedure names", () => {
+  for (const value of [undefined, null, "", "  ", "-"]) {
+    const blank = mod.exports.render({ operation_list_anes_type_id: 0, patient_name: value, dx_note: value });
+    assert.equal(textAfterLabel(blank, "ชื่อ-สกุล"), "-");
+    assert.equal(textAfterLabel(blank, "Dx."), "-");
+    assert.deepEqual(allTextNodes(blank).filter((node) => node.color === "#B42318").map((node) => node.text), ["ใช้"]);
+  }
+  const card = mod.exports.render({ operation_list_anes_type_id: 1, operation_names: "Synthetic A\nSynthetic B" });
+  assert.deepEqual(allTextNodes(card).filter((node) => node.color === "#B42318").map((node) => node.text), ["• Synthetic A", "• Synthetic B", "ใช้"]);
+});
+
+test("used anesthesia has a red badge while not-used remains plain text", () => {
+  for (const selected of [0, "0", 1, "2", 3, "4", undefined, null, ""]) {
+    const card = mod.exports.render({ operation_list_anes_type_id: selected });
+    const pending = [card.contents.body];
+    let badge;
+    while (pending.length) {
+      const node = pending.shift();
+      if (node.contents?.[0]?.text === "ดมยาสลบ") { badge = node.contents[1]; break; }
+      pending.push(...(node.contents ?? []));
+    }
+    if (selected !== undefined && selected !== null && selected !== "") {
+      assert.equal(badge.type, "box");
+      assert.equal(badge.backgroundColor, "#FFF1F2");
+      assert.equal(badge.cornerRadius, "12px");
+      assert.equal(badge.contents[0].text, "ใช้");
+      assert.equal(badge.contents[0].color, "#B42318");
+    } else {
+      assert.equal(badge.type, "text");
+      assert.equal(badge.text, "ไม่ใช้");
+      assert.equal(badge.color, "#263A35");
+    }
+  }
+});
 
 test("notification card labels blank and zero scheduled clocks as unspecified", () => {
   for (const value of [undefined, null, "", "  ", "00:00", "00:00:00", "0:00"]) {

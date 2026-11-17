@@ -102,7 +102,7 @@ function detailRow(label: string, value: string, emphasized = false) {
   };
 }
 
-function summaryField(label: string, value: string) {
+function summaryField(label: string, value: string, redBadge = false) {
   return {
     type: "box",
     layout: "vertical",
@@ -110,12 +110,24 @@ function summaryField(label: string, value: string) {
     spacing: "xs",
     contents: [
       flexText(label, { size: "sm", color: "#52665D" }),
-      flexText(value || "-", { size: "sm", weight: "bold" }),
+      redBadge
+        ? {
+            type: "box",
+            layout: "vertical",
+            width: "60px",
+            backgroundColor: "#FFF1F2",
+            cornerRadius: "12px",
+            paddingAll: "4px",
+            contents: [flexText(value, {
+              size: "sm", weight: "bold", align: "center", color: "#B42318",
+            })],
+          }
+        : flexText(value || "-", { size: "sm", weight: "bold" }),
     ],
   };
 }
 
-function clinicalNote(label: string, value: string, emphasized = false) {
+function clinicalNote(label: string, value: string, emphasized = false, color?: string) {
   return {
     type: "box",
     layout: "vertical",
@@ -125,6 +137,7 @@ function clinicalNote(label: string, value: string, emphasized = false) {
       flexText(value || "-", {
         size: emphasized ? "md" : "sm",
         ...(emphasized ? { weight: "bold" } : {}),
+        ...(color && value.trim() && value.trim() !== "-" ? { color } : {}),
       }),
     ],
   };
@@ -185,6 +198,7 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
   const anesthesiaTypeId = firstValue(row, ["operation_list_anes_type_id"]);
   // Zero is a real HOSxP choice: anesthesia is used, but its type is unknown.
   const usesAnesthesia = /^\d+$/.test(anesthesiaTypeId);
+  const anesthesiaHighlight = usesAnesthesia ? "#B42318" : undefined;
   const npoDate = firstValue(row, [
     "npo_date_time",
     "npo_datetime",
@@ -364,7 +378,7 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
                 contents: [
                   flexText(`• ${item.name}`, {
                     size: "md",
-                    color: "#0B5A4B",
+                    color: item.name !== "-" && anesthesiaHighlight ? anesthesiaHighlight : "#0B5A4B",
                     weight: "bold",
                   }),
                   ...([item.position, item.side].some(
@@ -462,6 +476,7 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
                 "ชื่อ-สกุล",
                 field(row, ["patient_name", "fullname"]),
                 true,
+                anesthesiaHighlight,
               ),
               detailRow("HN", field(row, ["hn"]), true),
               detailRow("อายุ", field(row, ["age_text", "age"])),
@@ -494,11 +509,11 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
             spacing: "md",
             contents: [
               summaryField("เวลา NPO", npo),
-              summaryField("ดมยาสลบ", usesAnesthesia ? "ใช้" : "ไม่ใช้"),
+              summaryField("ดมยาสลบ", usesAnesthesia ? "ใช้" : "ไม่ใช้", usesAnesthesia),
             ],
           },
           { type: "separator", margin: "sm", color: "#E3E9E6" },
-          clinicalNote("Dx.", diagnosis),
+          clinicalNote("Dx.", diagnosis, false, anesthesiaHighlight),
           clinicalNote("หมายเหตุ", operationNote),
         ],
       },
