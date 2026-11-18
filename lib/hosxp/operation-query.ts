@@ -14,7 +14,7 @@ SELECT
   CONCAT(pt.pname, pt.fname, '  ', pt.lname) AS ptname,
   s.status_name,
   e.emergency_name,
-  w.NAME AS ward_name,
+  CASE WHEN NULLIF(NULLIF(TRIM(o.an), ''), '0') IS NULL THEN 'OPD' ELSE w.NAME END AS ward_name,
   sp.NAME AS department_name,
   r.room_name
 FROM operation_list o
@@ -53,7 +53,7 @@ SELECT
   o.request_operation_date,
   e.emergency_name,
   s.status_name,
-  w.NAME AS ward_name,
+  CASE WHEN NULLIF(NULLIF(TRIM(o.an), ''), '0') IS NULL THEN 'OPD' ELSE w.NAME END AS ward_name,
   oi.NAME AS operation_item_name,
   detail.operation_started_at,
   detail.operation_ended_at

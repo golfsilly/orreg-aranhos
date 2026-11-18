@@ -484,7 +484,8 @@ async function getHosxpOperationRequestRows(
             DATE_FORMAT(CONCAT(o.request_date, ' ', COALESCE(o.request_time, '00:00:00')), '%Y-%m-%d %H:%i:%s') AS request_timestamp,
             CONCAT(pt.pname, pt.fname, ' ', pt.lname) AS patient_name,
             NULLIF(TRIM(pt.drugallergy), '') AS patient_drug_allergy,
-            w.NAME AS ward_name, d.NAME AS request_doctor_name,
+            CASE WHEN NULLIF(NULLIF(TRIM(o.an), ''), '0') IS NULL THEN 'OPD' ELSE w.NAME END AS ward_name,
+            d.NAME AS request_doctor_name,
             COALESCE(
               NULLIF(NULLIF(TRIM(t.cur_bedno), ''), '-'),
               NULLIF(NULLIF(TRIM(admission.bedno), ''), '-')

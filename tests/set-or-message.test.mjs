@@ -56,12 +56,13 @@ test("selected anesthesia highlights patient name, every procedure name, Dx. Not
     const card = mod.exports.render(row);
     const texts = allTextNodes(card);
     assert.deepEqual(texts.filter((node) => node.color === "#B42318").map((node) => node.text).sort(), [
-      "• Synthetic procedure A", "• Synthetic procedure B", "14:00 · ON\u00A0CALL", row.patient_name, row.dx_note, "ใช้",
+      "• Synthetic procedure A", "• Synthetic procedure B", row.patient_name, row.dx_note, "ใช้",
     ].sort());
-    for (const label of ["ชื่อ-สกุล", "หัตถการผ่าตัด", "Dx.", "หมายเหตุ"])
+    assert.equal(texts.find((node) => node.text === "14:00 · ON\u00A0CALL").color, "#92400E");
+    for (const label of ["ชื่อ-สกุล", "หัตถการผ่าตัด", "หมายเหตุ"])
       assert.notEqual(texts.find((node) => node.text === label).color, "#B42318");
     assert.equal(textAfterLabel(card, "ดมยาสลบ"), "ใช้");
-    assert.equal(textAfterLabel(card, "Dx."), row.dx_note);
+    assert.throws(() => textAfterLabel(card, "Dx."), /Missing notification field/);
     assert.deepEqual(row, before);
   }
 });
@@ -74,7 +75,7 @@ test("unselected anesthesia preserves normal colors even when on-call is selecte
       operation_name: "Synthetic procedure", operation_position: "BREAST", operation_side: "ขวา",
     });
     const texts = allTextNodes(card);
-    assert.deepEqual(texts.filter((node) => node.color === "#B42318").map((node) => node.text), ["ON\u00A0CALL"]);
+    assert.deepEqual(texts.filter((node) => node.color === "#92400E").map((node) => node.text), ["ON\u00A0CALL"]);
     assert.equal(texts.find((node) => node.text === "• Synthetic procedure").color, "#0B5A4B");
     assert.equal(textAfterLabel(card, "ดมยาสลบ"), "ไม่ใช้");
   }
@@ -84,7 +85,7 @@ test("anesthesia does not color empty placeholders and also highlights legacy pr
   for (const value of [undefined, null, "", "  ", "-"]) {
     const blank = mod.exports.render({ operation_list_anes_type_id: 0, patient_name: value, dx_note: value });
     assert.equal(textAfterLabel(blank, "ชื่อ-สกุล"), "-");
-    assert.equal(textAfterLabel(blank, "Dx."), "-");
+    assert.throws(() => textAfterLabel(blank, "Dx."), /Missing notification field/);
     assert.deepEqual(allTextNodes(blank).filter((node) => node.color === "#B42318").map((node) => node.text), ["ใช้"]);
   }
   const card = mod.exports.render({ operation_list_anes_type_id: 1, operation_names: "Synthetic A\nSynthetic B" });
@@ -162,8 +163,8 @@ test("on-call replaces an unspecified scheduled clock and is highlighted", () =>
     assert.equal(textAfterLabel(card, "เวลาผ่าตัด"), "ON\u00A0CALL");
     assert.throws(() => textAfterLabel(card, "On call"), /Missing notification field/);
     const schedule = card.contents.body.contents.find((node) => node.contents?.[1]?.contents?.[0]?.text === "เวลาผ่าตัด").contents[1];
-    assert.equal(schedule.contents[1].color, "#B42318");
-    assert.equal(schedule.backgroundColor, "#FFF1F2");
+    assert.equal(schedule.contents[1].color, "#92400E");
+    assert.equal(schedule.backgroundColor, "#FFFBEB");
   }
 });
 
@@ -231,7 +232,7 @@ test("missing allergy data is not converted into a confirmed denial while explic
   assert.equal(textAfterLabel(mod.exports.render({ patient_drug_allergy: sourceStatement }), "การแพ้ยา"), sourceStatement);
 });
 
-test("anesthesia, Dx. Note and remarks remain separate and ordered in the compact layout", () => {
+test("Dx. is omitted while remarks remain visible in the compact layout", () => {
   const row = {
     operation_list_anes_type_id: 0,
     dx_note: "Synthetic diagnosis A\nSynthetic diagnosis B",
@@ -241,7 +242,7 @@ test("anesthesia, Dx. Note and remarks remain separate and ordered in the compac
   const before = structuredClone(row);
   const card = mod.exports.render(row);
   assert.equal(textAfterLabel(card, "ดมยาสลบ"), "ใช้");
-  assert.equal(textAfterLabel(card, "Dx."), "Synthetic diagnosis A\nSynthetic diagnosis B");
+  assert.throws(() => textAfterLabel(card, "Dx."), /Missing notification field/);
   assert.equal(textAfterLabel(card, "หมายเหตุ"), "Synthetic remark only");
   const texts = [];
   const visit = (node) => {
@@ -250,23 +251,22 @@ test("anesthesia, Dx. Note and remarks remain separate and ordered in the compac
     node.contents?.forEach(visit);
   };
   visit(card.contents.body);
-  assert.ok(texts.indexOf("ดมยาสลบ") < texts.indexOf("Dx."));
-  assert.ok(texts.indexOf("Dx.") < texts.indexOf("หมายเหตุ"));
+  assert.ok(texts.indexOf("ดมยาสลบ") < texts.indexOf("หมายเหตุ"));
   assert.deepEqual(row, before);
 });
 
-test("empty Dx. Note never borrows legacy diagnoses written in remarks or other diagnosis fields", () => {
+test("empty Dx. remains omitted without changing remarks", () => {
   for (const dx_note of [undefined, null, "", "  "]) {
     const card = mod.exports.render({ dx_note, note: "Dx. legacy free text", provision_diagnosis_text: "Other diagnosis" });
-    assert.equal(textAfterLabel(card, "Dx."), "-");
+    assert.throws(() => textAfterLabel(card, "Dx."), /Missing notification field/);
     assert.equal(textAfterLabel(card, "หมายเหตุ"), "Dx. legacy free text");
     assert.equal(textAfterLabel(card, "ดมยาสลบ"), "ไม่ใช้");
   }
 });
 
-test("dedicated screen remarks retain priority and line breaks without replacing Dx. Note", () => {
+test("dedicated screen remarks retain priority and line breaks when Dx. is omitted", () => {
   const card = mod.exports.render({ dx_note: "Synthetic diagnosis", screen_note: "Screen remark A\r\nScreen remark B", note: "Older case remark" });
-  assert.equal(textAfterLabel(card, "Dx."), "Synthetic diagnosis");
+  assert.throws(() => textAfterLabel(card, "Dx."), /Missing notification field/);
   assert.equal(textAfterLabel(card, "หมายเหตุ"), "Screen remark A\nScreen remark B");
 });
 
@@ -322,7 +322,7 @@ test("readable card keeps every clinical field, allows full text and avoids unde
   for (const [label, expected] of [
     ["ชื่อ-สกุล", row.patient_name], ["HN", row.hn], ["อายุ", row.age_text],
     ["Ward", row.ward_name], ["แพทย์", row.request_doctor_name],
-    ["Dx.", row.dx_note], ["หมายเหตุ", row.note],
+    ["หมายเหตุ", row.note],
   ]) assert.equal(textAfterLabel(card, label), expected);
   assert.equal(texts.find((node) => node.text === row.patient_name).size, "md");
   assert.equal(texts.find((node) => node.text === `• ${row.requested_procedures[0].operation_name}`).size, "md");
@@ -330,7 +330,8 @@ test("readable card keeps every clinical field, allows full text and avoids unde
   assert.ok(patient.contents.some((node) => node.contents?.[0]?.text === "HN"));
   assert.ok(patient.contents.some((node) => node.contents?.[0]?.text === "อายุ"));
   const blank = mod.exports.render({});
-  for (const label of ["Dx.", "หมายเหตุ", "เวลา NPO", "Ward", "แพทย์", "น้ำหนัก", "ส่วนสูง"])
+  assert.throws(() => textAfterLabel(blank, "Dx."), /Missing notification field/);
+  for (const label of ["หมายเหตุ", "เวลา NPO", "Ward", "แพทย์", "น้ำหนัก", "ส่วนสูง"])
     assert.equal(textAfterLabel(blank, label), "-", `Missing fields must stay visible: ${label}`);
 });
 

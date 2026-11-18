@@ -118,16 +118,26 @@ function summaryField(label: string, value: string, redBadge = false) {
             backgroundColor: "#FFF1F2",
             cornerRadius: "12px",
             paddingAll: "4px",
-            contents: [flexText(value, {
-              size: "sm", weight: "bold", align: "center", color: "#B42318",
-            })],
+            contents: [
+              flexText(value, {
+                size: "sm",
+                weight: "bold",
+                align: "center",
+                color: "#B42318",
+              }),
+            ],
           }
         : flexText(value || "-", { size: "sm", weight: "bold" }),
     ],
   };
 }
 
-function clinicalNote(label: string, value: string, emphasized = false, color?: string) {
+function clinicalNote(
+  label: string,
+  value: string,
+  emphasized = false,
+  color?: string,
+) {
   return {
     type: "box",
     layout: "vertical",
@@ -243,9 +253,6 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
     scheduledClock === "00:00" || scheduledClock === "-"
       ? "ไม่ระบุ"
       : scheduledClock;
-  // HOSxP's Dx. Note and remarks are separate clinical fields. Never infer
-  // a diagnosis from remarks entered before staff started using Dx. Note.
-  const diagnosis = firstMultilineValue(row, ["dx_note"]);
   const operationNote = firstMultilineValue(row, [
     "screen_note",
     "screen_remark",
@@ -378,7 +385,10 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
                 contents: [
                   flexText(`• ${item.name}`, {
                     size: "md",
-                    color: item.name !== "-" && anesthesiaHighlight ? anesthesiaHighlight : "#0B5A4B",
+                    color:
+                      item.name !== "-" && anesthesiaHighlight
+                        ? anesthesiaHighlight
+                        : "#0B5A4B",
                     weight: "bold",
                   }),
                   ...([item.position, item.side].some(
@@ -447,12 +457,12 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
                     size: "md",
                     weight: "bold",
                     margin: "xs",
-                    color: isOnCall ? "#B42318" : "#263A35",
+                    color: isOnCall ? "#92400E" : "#263A35",
                   }),
                 ],
                 ...(isOnCall
                   ? {
-                      backgroundColor: "#FFF1F2",
+                      backgroundColor: "#FFFBEB",
                       cornerRadius: "10px",
                     }
                   : {}),
@@ -509,11 +519,14 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
             spacing: "md",
             contents: [
               summaryField("เวลา NPO", npo),
-              summaryField("ดมยาสลบ", usesAnesthesia ? "ใช้" : "ไม่ใช้", usesAnesthesia),
+              summaryField(
+                "ดมยาสลบ",
+                usesAnesthesia ? "ใช้" : "ไม่ใช้",
+                usesAnesthesia,
+              ),
             ],
           },
           { type: "separator", margin: "sm", color: "#E3E9E6" },
-          clinicalNote("Dx.", diagnosis, false, anesthesiaHighlight),
           clinicalNote("หมายเหตุ", operationNote),
         ],
       },
