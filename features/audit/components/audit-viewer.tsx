@@ -58,6 +58,7 @@ const labels: Record<string, string> = {
   REGISTER_DETAILS_UPDATED: "แก้ไขข้อมูลผ่าตัด",
   HOSXP_SYNC: "ซิงก์ HOSxP",
   HOSXP_OPERATIONS_READ: "ดูรายการผ่าตัด",
+  HOSXP_SET_OR_NOTIFICATION_SKIPPED: "ข้ามแจ้งเตือน Set OR ที่ไม่ใช่ IPD",
   HOSXP_TEAM_READ: "ดูทีมผ่าตัด",
   REGISTER_TIMES_READ: "ดูเวลาผ่าตัด",
   REGISTER_DETAILS_READ: "ดูข้อมูลผ่าตัด",

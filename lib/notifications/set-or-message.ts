@@ -527,7 +527,7 @@ function oneOperationMessage(row: HosxpOperation, logoUrl?: string) {
             ],
           },
           { type: "separator", margin: "sm", color: "#E3E9E6" },
-          clinicalNote("หมายเหตุ", operationNote),
+          clinicalNote("Dx. / หมายเหตุ", operationNote),
         ],
       },
       footer: {

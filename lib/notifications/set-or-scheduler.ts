@@ -138,6 +138,26 @@ export async function runSetOrNotificationCheck() {
   if (!rows.length) return;
   await auditRead(rows.length, "SUCCESS");
 
+  if (rows.every((row) => row.patient_department !== "IPD")) {
+    // Advance a completely ineligible page atomically without claiming a send.
+    // Keep OPD rows in the source page so 100 skipped rows cannot block later IPD.
+    const lastRow = rows[rows.length - 1]!;
+    await prisma.$transaction(async (tx) => {
+      const advanced = await tx.surgeryNotificationCursor.updateMany({
+        where: { job: JOB, paused: false, operationId: cursor.operationId },
+        data: {
+          operationId: String(lastRow.operation_id),
+          requestAt: cursorDateTime(lastRow) || cursor.requestAt,
+        },
+      });
+      if (advanced.count) await writeAudit(tx, {
+        event: "HOSXP_SET_OR_NOTIFICATION_SKIPPED", outcome: "SUCCESS",
+        metadata: { total: rows.length, section: "NOTIFICATION" },
+      });
+    });
+    return;
+  }
+
   // A committed database claim protects separate Node processes as well as restarts.
   // No automatic expiry: a crash after delivery must not permit another send.
   const claimed = await prisma.$transaction(async (tx) => {
@@ -155,6 +175,22 @@ export async function runSetOrNotificationCheck() {
 
   for (const row of rows) {
     const operationId = String(row.operation_id);
+    if (row.patient_department !== "IPD") {
+      // Only the explicit HOSxP department qualifies. Never infer IPD from AN
+      // or Ward, create a delivery record, or revisit a skipped case later.
+      await prisma.$transaction(async (tx) => {
+        await tx.surgeryNotificationCursor.update({
+          where: { job: JOB },
+          data: { operationId, requestAt: cursorDateTime(row) || cursor.requestAt },
+        });
+        await writeAudit(tx, {
+          event: "HOSXP_SET_OR_NOTIFICATION_SKIPPED", outcome: "SUCCESS",
+          targetType: "HOSXP_OPERATION", targetId: operationId,
+          metadata: { total: 1, section: "NOTIFICATION" },
+        });
+      });
+      continue;
+    }
     const key = { job_operationId: { job: JOB, operationId } };
     const delivery = await prisma.surgeryNotificationDelivery.findUnique({ where: key });
     if (delivery && delivery.status !== "SENT") {
